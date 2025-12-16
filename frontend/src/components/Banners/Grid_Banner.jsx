@@ -18,7 +18,7 @@ export default function Grid_Banner() {
 
 
         <Grid size={6}>
-          <Item className="min-h-80 ml-40  ">
+          <Item className="min-h-80 ml-40 ">
             <div className="flex w-full">
               {/* LEFT HALF*/}
               <div
@@ -28,14 +28,14 @@ export default function Grid_Banner() {
               >
                 <div className="flex flex-col gap-4 mt-5">
                   {/* Left message */}
-                  <div className="flex justify-end p-4">
+                  <div className="flex justify-end p-4 hover-3d">
                     <h1 className="text-xl max-w-xs rounded-xl rounded-br-none shadow p-2 bg-white border-3 border-stone-800">
                       hey!
                     </h1>
                   </div>
 
                   {/* Right message */}
-                  <div className="flex justify-start p-4">
+                  <div className="flex justify-start p-4 hover-3d">
                     <h1 className="text-xl max-w-40 rounded-xl rounded-tl-none shadow p-2 bg-stone-800 border-3 border-white text-white">
                       Great to meet you, let's get started.
                     </h1>
@@ -59,7 +59,7 @@ export default function Grid_Banner() {
         </Grid>
 
         <Grid size={6}>
-          <Item className="min-h-80 mr-40">
+          <Item className="min-h-80 mr-40 hover-3d">
             <div className="flex flex-row">
               <div className="w-1/2 min-h-80 rounded-tl-xl rounded-bl-xl overflow-hidden">
                 <img
@@ -86,7 +86,7 @@ export default function Grid_Banner() {
 
 
         <Grid size={4}>
-          <Item className="min-h-80 ml-40">
+          <Item className="min-h-80 ml-40 hover-3d">
             <div className="flex flex-col justify-between">
               <div className="h-40 w-full overflow-hidden rounded-t-xl">
                 <img
@@ -108,7 +108,7 @@ export default function Grid_Banner() {
           </Item>
         </Grid>
         <Grid size={4}>
-          <Item className="min-h-80 ">
+          <Item className="min-h-80 hover-3d">
             <div className="flex flex-col justify-between">
               <div className="h-40 w-full overflow-hidden rounded-t-xl">
                 <img
@@ -130,7 +130,7 @@ export default function Grid_Banner() {
           </Item>
         </Grid>
         <Grid size={4}>
-          <Item className="min-h-80 mr-40">
+          <Item className="min-h-80 mr-40 hover-3d">
             <div className="flex flex-col justify-between">
               <div className="h-40 w-full overflow-hidden rounded-t-xl relative">
                 <img

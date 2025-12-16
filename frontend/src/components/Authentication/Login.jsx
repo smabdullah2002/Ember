@@ -70,7 +70,7 @@ const Login = () => {
                                     value={formData.password}
                                     onChange={handleChange}
                                     className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                    placeholder="Create a strong password"
+                                    placeholder="Enter your password"
                                     required
                                 />
                             </div>
@@ -81,7 +81,7 @@ const Login = () => {
                         {/* Submit Button */}
                         <button
                             onClick={handleSubmit}
-                            className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 transform hover:scale-[1.02] transition-all shadow-lg hover:shadow-xl"
+                            className="w-full bg-linear-to-r from-blue-500 to-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 transform hover:scale-[1.02] transition-all shadow-lg hover:shadow-xl"
                         >
                             Login
                         </button>

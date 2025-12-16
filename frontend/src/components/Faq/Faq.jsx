@@ -29,7 +29,7 @@ export default function FAQAccordion() {
   };
 
   return (
-    <div className=" py-16 px-4 sm:px-6 lg:px-8">
+    <div className=" py-16 px-4 sm:px-6 lg:px-8" id="faq">
       <div className="max-w-3xl mx-auto">
         {/* Header */}
         <h1 className="text-5xl md:text-5xl font-bold text-amber-100 text-center mb-16">

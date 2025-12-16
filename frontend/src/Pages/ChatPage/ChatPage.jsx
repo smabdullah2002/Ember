@@ -5,9 +5,6 @@ import Background from '../../components/Background/Background';
 const ChatPage = () => {
     return (
         <div className='mt-20'>
-            <div>
-                <Background />
-            </div>
             <div className="relative z-20">
                   <Chat />
 

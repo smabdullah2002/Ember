@@ -5,21 +5,21 @@ import { Link } from 'react-router';
 const Navbar = () => {
 
     return (
-        <div className="w-full  sticky backdrop-blur-xl  shadow-lg min-h-18 top-0 left-0 z-50">
-             <div className="w-full flex justify-center items-center py-4 z-30">
-            <div className='absolute top-0 left-0 flex items-center p-3'>
-                <Link to="/">
-                    <h1 className='text-white font-bold text-2xl font-serif'>Bliss</h1>
-                </Link>
-            </div>
+        <div className="w-full  sticky backdrop-blur-xl  shadow-lg min-h-18 top-0 left-0 z-50 flex justify-between items-center px-6 py-2">
+            <div className="w-full flex justify-center items-center py-4 z-30">
+                <div className='absolute top-0 left-0 flex items-center p-3'>
+                    <Link to="/">
+                        <h1 className='text-white font-bold text-2xl font-serif'>Bliss</h1>
+                    </Link>
+                </div>
 
                 <PillNav
                     items={[
                         // {label: 'Bliss', href: '/' , isLogo: true},
                         { label: 'Home', href: '/' },
-                        { label: 'Chat', href: '/chat' },
-                        { label: 'Dashboard', href: '/todo' },
-                        { label: 'Contact', href: '/contact' }
+                        { label: 'Faq', href: '#faq' },
+                        // { label: 'Dashboard', href: '/todo' },
+                        // { label: 'Feed', href: '/feed' }
                     ]}
                     activeHref="/"
                     className="custom-nav"
@@ -30,12 +30,26 @@ const Navbar = () => {
                     pillTextColor="#000000"
                 />
 
+            </div>
+            <div className='flex flex-row'>
+                <Link to="/registration">
+                    <button className='btn btn-soft py-4 px-4 text-xl font-mono'>
+                        Signup
+                    </button>
+
+                </Link>
+
+                <Link to="/login" className="ml-4">
+                    <button className='btn btn-soft py-4 px-6 text-xl font-mono'>
+                        Login
+                    </button>
+
+                </Link>
+            </div>
 
 
         </div>
 
-        </div>
-       
 
 
     );
