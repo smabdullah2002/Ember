@@ -15,11 +15,8 @@ const Navbar = () => {
 
                 <PillNav
                     items={[
-                        // {label: 'Bliss', href: '/' , isLogo: true},
                         { label: 'Home', href: '/' },
-                        { label: 'Faq', href: '#faq' },
-                        // { label: 'Dashboard', href: '/todo' },
-                        // { label: 'Feed', href: '/feed' }
+                        { label: 'FAQ', href: '#faq' }
                     ]}
                     activeHref="/"
                     className="custom-nav"
