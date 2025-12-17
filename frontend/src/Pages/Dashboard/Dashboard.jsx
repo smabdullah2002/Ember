@@ -5,8 +5,8 @@ import Sidebar from '../../components/Header/Sidebar/Sidebar';
 const Dashboard = () => {
     return (
         <div>
-           {/* <WellnessList/> */}
-           {/* <Sidebar /> */}
+           <WellnessList/>
+           
          
             
         </div>

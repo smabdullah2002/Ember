@@ -8,11 +8,13 @@ import Registration from "../components/Authentication/Registration";
 import Login from "../components/Authentication/Login";
 import Dashboard from "../Pages/Dashboard/Dashboard";
 import Root_2 from "../Pages/Root/Root_2";
+import Moodkit from "../Pages/Moodkit/Moodkit";
 
 
 
 const router = createBrowserRouter([
   {
+    path: "/",
     element: <Root />,
     children: [
       {
@@ -20,26 +22,31 @@ const router = createBrowserRouter([
         element: <Home />
       },
       {
-        path: "/registration",
+        path: "registration",
         element: <Registration />
       },
       {
-        path: "/login",
+        path: "login",
         element: <Login />
       }
     ]
   },
 
   {
+    path:"/dashboard",
     element: <Root_2 />,
     children: [
       {
-        path: "/chat",
+        path: "chat",
         element: <ChatPage />
       },
       {
-        path: "/todo",
+        path: "todo",
         element: <Dashboard />
+      },
+      {
+        path: "moodkit",
+        element: <Moodkit />
       }
     ]
   }

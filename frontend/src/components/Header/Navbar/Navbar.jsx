@@ -17,8 +17,8 @@ const Navbar = () => {
                     items={[
                         { label: 'Home', href: '/' },
                         { label: 'Faq', href: '#faq' },
-                        {label: 'Why use ?', href: '#why-use'},
-                      
+                        { label: 'Why use ?', href: '#why-use' },
+
                     ]}
                     activeHref="/"
                     className="custom-nav"
