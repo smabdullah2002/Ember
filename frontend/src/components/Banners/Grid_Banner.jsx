@@ -13,7 +13,7 @@ const Item = styled(Paper)(({ theme }) => ({
 
 export default function Grid_Banner() {
   return (
-    <Box sx={{ flexGrow: 1 }}>
+    <Box sx={{ flexGrow: 1 }} id="why-use">
       <Grid container spacing={2} className="mt-10 mb-10">
 
 

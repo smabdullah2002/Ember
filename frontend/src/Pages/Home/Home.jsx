@@ -23,7 +23,7 @@ const Home = () => {
 
             <div className='divider'></div>
 
-            <div className='relative w-full h-screen'>
+            <div className='relative pt-20'>
                 <Banner_1 />
                 <Grid_Banner />
                 <FAQAccordion />
