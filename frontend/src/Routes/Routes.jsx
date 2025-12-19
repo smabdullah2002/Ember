@@ -1,8 +1,6 @@
-
 import { createBrowserRouter } from "react-router";
 import Root from './../Pages/Root/Root';
 import Home from "../Pages/Home/Home";
-import WellnessList from "../components/WellnessList/WellnessList";
 import ChatPage from "../Pages/ChatPage/ChatPage";
 import Registration from "../components/Authentication/Registration";
 import Login from "../components/Authentication/Login";
@@ -33,7 +31,7 @@ const router = createBrowserRouter([
   },
 
   {
-    path:"/dashboard",
+    path:"/user",
     element: <Root_2 />,
     children: [
       {
@@ -41,7 +39,7 @@ const router = createBrowserRouter([
         element: <ChatPage />
       },
       {
-        path: "todo",
+        path: "dashboard",
         element: <Dashboard />
       },
       {

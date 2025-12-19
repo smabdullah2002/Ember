@@ -14,7 +14,7 @@ const Join = () => {
 
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
                     <h1 className="text-2xl text-white font-semibold">
-                        Begin your journey to better mental health with Bliss today.
+                        Begin your journey to better mental health with Ember today.
                     </h1>
                  <Link  to="/registration">
                   <button className="mt-15 px-6 py-3 bg-white/20 hover:bg-white/30 rounded-lg backdrop-blur-md font-semibold text-lg transition">

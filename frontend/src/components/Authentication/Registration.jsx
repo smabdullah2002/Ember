@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MessageCircle, User, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { MessageCircle, User, Mail, Lock, Eye, EyeOff,Sparkles } from 'lucide-react';
 import { Link } from 'react-router';
 
 const Registration = () => {
@@ -55,6 +55,9 @@ const Registration = () => {
                     {/* Right Panel - Registration Form */}
                     <div className="md:w-1/2 p-12">
                         <div className="max-w-md mx-auto">
+                            <div className='w-15 h-15 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center mx-auto'>
+                                <Sparkles className='w-7 h-7 text-white' />
+                            </div>
                             <h2 className="text-3xl font-bold text-gray-800 text-center mb-2">
                                 CREATE ACCOUNT
                             </h2>

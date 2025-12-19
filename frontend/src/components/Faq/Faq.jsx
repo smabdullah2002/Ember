@@ -6,20 +6,20 @@ export default function FAQAccordion() {
 
   const faqs = [
     {
-      question: "What can Bliss do?",
-      answer: "Ash provides emotional wellbeing support through conversations over text or voice-chat. Ash remembers what you say, provides insights on your experience, challenges you when appropriate, and creates a plan for your journey."
+      question: "What can Ember do?",
+      answer: "Ember provides emotional wellbeing support through conversations over text or voice-chat. Ember remembers what you say, provides insights on your experience, challenges you when appropriate, and creates a plan for your journey."
     },
     {
-      question: "Is Bliss a replacement for professional help?",
-      answer: "Ash isn't designed to treat, track or diagnose disorders or as a replacement for professional help. If you need more support than what Ash can provide, we encourage you to reach out to a professional. Ash also isn’t built for crisis situations - if you are in an emergency or crisis situation, please reach out to 988 or a local support service. Ash cannot, and does not intend to, provide medical advice or diagnosis. Interaction with Ash does not constitute a medical professional-patient relationship. Please do not avoid or delay medical attention as a result of a statement from Ash."
+      question: "Is Ember a replacement for professional help?",
+      answer: "Ember isn't designed to treat, track or diagnose disorders or as a replacement for professional help. If you need more support than what Ember can provide, we encourage you to reach out to a professional. Ember also isn’t built for crisis situations - if you are in an emergency or crisis situation, please reach out to 988 or a local support service. Ember cannot, and does not intend to, provide medical advice or diagnosis. Interaction with Ember does not constitute a medical professional-patient relationship. Please do not avoid or delay medical attention as a result of a statement from Ember."
     },
     {
-      question: "Is Bliss appropriate for all ages?",
-      answer: "Ash is designed for adults (18+) seeking thoughtful, accessible, emotional wellbeing support, especially those navigating everyday life transitions, stresses, worries or relationship changes. If you need medical treatment or advice on your mental health, please seek professional help."
+      question: "Is Ember appropriate for all ages?",
+      answer: "Ember is designed for adults (18+) seeking thoughtful, accessible, emotional wellbeing support, especially those navigating everyday life transitions, stresses, worries or relationship changes. If you need medical treatment or advice on your mental health, please seek professional help."
     },
     {
-      question: "Is Bliss safe and private?",
-      answer: "We take privacy incredibly seriously. We want you to feel safe to be yourself, and express yourself fully. Your conversations remain private unless you choose to share them anonymously to help make Ash better for everyone. "
+      question: "Is Ember safe and private?",
+      answer: "We take privacy incredibly seriously. We want you to feel safe to be yourself, and express yourself fully. Your conversations remain private unless you choose to share them anonymously to help make Ember better for everyone. "
     },
     
   ];
@@ -32,7 +32,7 @@ export default function FAQAccordion() {
     <div className=" py-16 px-4 sm:px-6 lg:px-8" id="faq">
       <div className="max-w-3xl mx-auto">
         {/* Header */}
-        <h1 className="text-5xl md:text-5xl font-bold text-amber-100 text-center mb-16">
+        <h1 className="text-5xl md:text-5xl font-bold text-stone-800 text-center mb-16">
           FAQs
         </h1>
 

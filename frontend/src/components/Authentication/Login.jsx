@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MessageCircle, Mail, Lock, Eye, EyeOff, Bot, Heart, Users, Shield } from 'lucide-react';
+import { MessageCircle, Mail, Lock, Eye, EyeOff, Bot, Heart, Users, Shield,Sparkles } from 'lucide-react';
 import { Link } from 'react-router';
 
 const Login = () => {
@@ -55,9 +55,7 @@ const Login = () => {
                             className="absolute inset-0 bg-[url(login2.jpg)] bg-cover bg-center filter opacity-85 z-0"
                         ></div>
 
-                        {/* Decorative elements */}
-                        <div className="absolute top-20 right-10 w-64 h-64 bg-blue-400 rounded-full opacity-20 blur-3xl z-0"></div>
-                        <div className="absolute bottom-10 left-10 w-48 h-48 bg-purple-400 rounded-full opacity-30 blur-3xl z-0"></div>
+                     
 
                         {/* Foreground content */}
                         <div className="relative z-10 text-stone-600">
@@ -105,9 +103,9 @@ const Login = () => {
                         <div className="max-w-md mx-auto w-full">
                             {/* Logo Icon */}
                             <div className="flex justify-center mb-6">
-                                <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-                                    <MessageCircle className="w-8 h-8 text-white" />
-                                </div>
+                                 <div className='w-15 h-15 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center mx-auto'>
+                                <Sparkles className='w-7 h-7 text-white' />
+                            </div>
                             </div>
 
                             <h2 className="text-3xl font-bold text-gray-800 text-center mb-2">

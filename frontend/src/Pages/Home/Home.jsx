@@ -11,7 +11,7 @@ const Home = () => {
         <div >
             <div className='flex flex-col items-center justify-center mx-auto min-h-screen relative'>
                 <h1 className='text-5xl font-bold'>
-                    Welcome to <span className='text-blue-500 font-serif'>Bliss</span>
+                    Welcome to <span className='text-blue-500 font-serif'>Ember</span>
                 </h1>
                 <h2 className='text-2xl font-mono'>Your Mental Health Companion</h2>
                 <Link to="/registration">

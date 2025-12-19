@@ -5,7 +5,7 @@ import Background from '../../components/Background/Background';
 
 const Root_2 = () => {
     return (
-        <div className='bg-white/70 dark:bg-gray-900/70 min-h-screen backdrop-blur-sm'>
+        <div className='bg-pink-100  min-h-screen'>
             {/* <Background /> */}
             <div className="flex min-h-screen ">
                 <Sidebar />

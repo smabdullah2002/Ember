@@ -45,11 +45,11 @@ export default function Grid_Banner() {
 
               {/* RIGHT HALF*/}
               <div className="w-1/2 flex flex-col justify-center p-10">
-                <h1 className="text-xl text-white font-bold">
-                  Don't know where to start? Bliss does
+                <h1 className="text-xl  font-bold text-stone-800">
+                  Don't know where to start? Ember does
                 </h1>
 
-                <h1 className="text-xl text-white mt-10">
+                <h1 className="text-xl text-stone-800 mt-10">
                   Whether you're overwhelmed, curious, or just need to talk it
                   out, Ash can help.
                 </h1>
@@ -71,11 +71,11 @@ export default function Grid_Banner() {
               {/* <div className="divider lg:divider-horizontal divider-neutral min-h-70 "></div> */}
 
               <div className="w-1/2 flex flex-col justify-center p-10">
-                <h1 className="text-xl text-white font-bold">
+                <h1 className="text-xl text-stone-800 font-bold">
                   Talk or text 24/7, Ash listens
                 </h1>
-                <h1 className="text-xl text-white mt-10">
-                  Sometimes you just need to say things out loud. You can talk to Bliss like you would on a a phone call or text Bliss for prompt, private guidance.
+                <h1 className="text-xl text-stone-800 mt-10">
+                  Sometimes you just need to say things out loud. You can talk to Ember like you would on a a phone call or text Ember for prompt, private guidance.
 
                 </h1>
               </div>
@@ -97,11 +97,11 @@ export default function Grid_Banner() {
               </div>
 
               <div className="p-8">
-                <h1 className="text-xl text-white font-bold">
-                  Bliss discovers your patterns
+                <h1 className="text-xl text-stone-800 font-bold">
+                  Ember discovers your patterns
                 </h1>
-                <h1 className="text-xl text-white mt-5">
-                  Each conversation helps Bliss understand you more and more deeply.
+                <h1 className="text-xl text-stone-800 mt-5">
+                  Each conversation helps Ember understand you more and more deeply.
                 </h1>
               </div>
             </div>
@@ -119,11 +119,11 @@ export default function Grid_Banner() {
               </div>
 
               <div className="p-8">
-                <h1 className="text-xl text-white font-bold">
+                <h1 className="text-xl text-stone-800 font-bold">
                   Breakthrough insights from day one
                 </h1>
-                <h1 className="text-xl text-white mt-5">
-                  From your first conversation, Bliss works hard to identify patterns and connect the dots between your thoughts
+                <h1 className="text-xl text-stone-800 mt-5">
+                  From your first conversation, Ember works hard to identify patterns and connect the dots between your thoughts
                 </h1>
               </div>
             </div>
@@ -148,11 +148,11 @@ export default function Grid_Banner() {
               </div>
 
               <div className="p-8">
-                <h1 className="text-xl text-white font-bold">
-                  Bliss takes you on a journey
+                <h1 className="text-xl text-stone-800 font-bold">
+                  Ember takes you on a journey
                 </h1>
-                <h1 className="text-xl text-white mt-5">
-                  Come with your own agenda or let Bliss guide the way with new insights.
+                <h1 className="text-xl text-stone-800 mt-5">
+                  Come with your own agenda or let Ember guide the way with new insights.
                 </h1>
               </div>
             </div>
