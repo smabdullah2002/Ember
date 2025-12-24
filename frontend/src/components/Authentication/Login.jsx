@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { MessageCircle, Mail, Lock, Eye, EyeOff, Bot, Heart, Users, Shield,Sparkles } from 'lucide-react';
-import { Link } from 'react-router';
+import { Mail, Lock, Eye, EyeOff, Bot, Heart, Users, Shield, Sparkles } from 'lucide-react';
+import { Link, useNavigate } from 'react-router';
+import { createClient } from "@supabase/supabase-js";
 
 const Login = () => {
     const [showPassword, setShowPassword] = useState(false);
@@ -10,6 +11,13 @@ const Login = () => {
         password: ''
     });
 
+    const supabase = createClient(
+        import.meta.env.VITE_SUPABASE_URL,
+        import.meta.env.VITE_SUPABASE_ANON_KEY
+    );
+    
+    const navigate = useNavigate();
+
     const handleChange = (e) => {
         setFormData({
             ...formData,
@@ -17,8 +25,18 @@ const Login = () => {
         });
     };
 
-    const handleSubmit = () => {
-        console.log('Login submitted:', formData);
+    const handleSubmit = async () => {
+        const{email, password} = formData;
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email:email,
+            password:password
+        });
+
+        if (error) {
+            alert("Login failed: " + error.message);
+            return;
+        }
+        navigate("/user/dashboard");
     };
 
     const features = [
@@ -55,7 +73,7 @@ const Login = () => {
                             className="absolute inset-0 bg-[url(login2.jpg)] bg-cover bg-center filter opacity-85 z-0"
                         ></div>
 
-                     
+
 
                         {/* Foreground content */}
                         <div className="relative z-10 text-stone-600">
@@ -103,9 +121,9 @@ const Login = () => {
                         <div className="max-w-md mx-auto w-full">
                             {/* Logo Icon */}
                             <div className="flex justify-center mb-6">
-                                 <div className='w-15 h-15 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center mx-auto'>
-                                <Sparkles className='w-7 h-7 text-white' />
-                            </div>
+                                <div className='w-15 h-15 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center mx-auto'>
+                                    <Sparkles className='w-7 h-7 text-white' />
+                                </div>
                             </div>
 
                             <h2 className="text-3xl font-bold text-gray-800 text-center mb-2">

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { MessageCircle, User, Mail, Lock, Eye, EyeOff,Sparkles } from 'lucide-react';
-import { Link } from 'react-router';
+import { User, Mail, Lock, Eye, EyeOff, Sparkles } from 'lucide-react';
+import { Link, useNavigate } from 'react-router';
+import axios from 'axios';
 
 const Registration = () => {
     const [showPassword, setShowPassword] = useState(false);
@@ -21,9 +22,47 @@ const Registration = () => {
         });
     };
 
-    const handleSubmit = () => {
-        console.log('Form submitted:', formData);
+    const payload = {
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        email: formData.email,
+        password: formData.password,
+        // confirm_password: formData.confirmPassword
+    }
+    const navigate = useNavigate();
+
+    const handleSubmit = async () => {
+        if (formData.password !== formData.confirmPassword) {
+            alert("Passwords do not match");
+            return;
+        }
+
+        try {
+            await axios.post(
+                "http://127.0.0.1:8000/auth/signup",
+                payload,
+                { headers: { "Content-Type": "application/json" } }
+            );
+
+            // Redirect after successful signup
+            navigate("/login");
+        } catch (error) {
+            console.log(error.response)
+            if (error.response) {
+                // Check if backend sent email exists error
+                if (error.response.status === 404) {
+                    alert("Email already exists");
+                } else {
+                    alert("Signup failed");
+                }
+            } else {
+                alert("Network error or server is down");
+            }
+        }
     };
+
+
+
 
     return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 mt-20">
