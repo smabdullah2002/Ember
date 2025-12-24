@@ -4,6 +4,8 @@ import FAQAccordion from '../../components/Faq/Faq';
 import Join from '../../components/Join/Join';
 import Footer from '../../components/Footer/Footer';
 import { Link } from 'react-router-dom';
+import { AuroraText } from "@/components/ui/aurora-text"
+import { TypingAnimation } from '@/components/ui/typing-animation';
 
 
 const Home = () => {
@@ -11,11 +13,12 @@ const Home = () => {
         <div >
             <div className='flex flex-col items-center justify-center mx-auto min-h-screen relative'>
                 <h1 className='text-5xl font-bold'>
-                    Welcome to <span className='text-blue-500 font-serif'>Ember</span>
+                    Welcome to <AuroraText className='font-serif'>Ember</AuroraText>
                 </h1>
-                <h2 className='text-2xl font-mono'>Your Mental Health Companion</h2>
+                {/* <h2 className='text-2xl font-mono'>Your Mental Health Companion</h2> */}
+                <TypingAnimation className='text-2xl font-mono'>Your Mental Health Companion</TypingAnimation>
                 <Link to="/registration">
-                    <button className="mt-6 px-6 py-3 bg-white/20 hover:bg-white/30 rounded-lg backdrop-blur-md font-semibold text-lg transition">
+                    <button className="mt-6 px-6 py-3 bg-white/20 hover:bg-white/50 rounded-lg backdrop-blur-md font-semibold text-lg transition">
                         Get Started
                     </button>
                 </Link>

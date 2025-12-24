@@ -5,6 +5,7 @@ import Breathing478Animation from '../../components/Selfhelp/Breating/FourSevenE
 import AlternateNostrilBreathing from '../../components/Selfhelp/Breating/AlternateBreathing';
 import SoothingAudioCard from './../../components/Selfhelp/SoothingAudio/SoothingAudio';
 import SoothingVideoCards from '../../components/Selfhelp/Meditation/Meditation';
+import Journal from '../../components/Selfhelp/Journaling/Journal';
 
 
 const Moodkit = () => {
@@ -160,6 +161,8 @@ const Moodkit = () => {
           </div>
         )}
 
+
+
         {/* audio Tab */}
         {activeTab === 'audio' && (
 
@@ -172,11 +175,9 @@ const Moodkit = () => {
         )}
 
         {/* journaling Tab */}
-       {activeTab==='journaling' && (
-        <div>
-          <h1>Journaling</h1>
-        </div>
-       )}
+        {activeTab === 'journaling' && (
+          <Journal />
+        )}
       </div>
 
       {/* ================= MODAL OVERLAY ================= */}

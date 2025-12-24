@@ -1,9 +1,9 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 @plugin "daisyui";
 
 html {
   scroll-behavior: smooth;
 }
-/* body {
-  @apply bg-gradient-to-b from-purple-900 via-indigo-900 to-blue-900;
-} */
+
+

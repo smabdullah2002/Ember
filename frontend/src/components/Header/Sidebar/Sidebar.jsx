@@ -7,11 +7,11 @@ const Sidebar = () => {
   const [activeItem, setActiveItem] = useState('Dashboard');
 
   const menuItems = [
-    { icon: BarChart3, label: 'Dashboard', path: 'dashboard' },
+    { icon: BarChart3, label: 'Dashboard', path: 'mood-dashboard' },
     { icon: MessageCircle, label: 'Chatbot', path: 'chat' },
-    { icon: Users, label: 'Community', path: '#' },
-    { icon: HelpCircle, label: 'HelpHub', path: '#' },
-    { icon: LineChart, label: 'MoodBoard', path: '#' },
+    { icon: Users, label: 'Community', path: 'community' },
+    { icon: HelpCircle, label: 'HelpHub', path: 'helphub' },
+    { icon: LineChart, label: 'MoodBoard', path: 'moodboard' },
     { icon: Wrench, label: 'MoodKit', path: 'moodkit' }
   ];
 

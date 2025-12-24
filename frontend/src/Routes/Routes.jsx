@@ -7,6 +7,10 @@ import Login from "../components/Authentication/Login";
 import Dashboard from "../Pages/Dashboard/Dashboard";
 import Root_2 from "../Pages/Root/Root_2";
 import Moodkit from "../Pages/Moodkit/Moodkit";
+import MoodBoard from "../Pages/MoodBoard/MoodBoard";
+import MoodDashboard from "../Pages/MoodDashboard/MoodDashboard";
+import MentalHealthHub from "@/components/Helphub/Helphub";
+import CommunitySupportForum from "@/components/Community/Post";
 
 
 
@@ -45,6 +49,22 @@ const router = createBrowserRouter([
       {
         path: "moodkit",
         element: <Moodkit />
+      },
+      {
+        path: "moodboard",
+        element: <MoodBoard />
+      },
+      {
+        path: "mood-dashboard",
+        element: <MoodDashboard />
+      },
+      {
+        path:"helphub",
+        element:<MentalHealthHub/>
+      },
+      {
+        path:"community",
+        element:<CommunitySupportForum/>
       }
     ]
   }
