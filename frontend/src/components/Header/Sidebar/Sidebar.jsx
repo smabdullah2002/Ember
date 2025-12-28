@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { BarChart3, MessageCircle, Users, HelpCircle, LineChart, Wrench } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Send, Sparkles, UserPen, LogOut } from 'lucide-react';
+import { createClient } from "@supabase/supabase-js";
 
 const Sidebar = () => {
   const [activeItem, setActiveItem] = useState('Dashboard');
@@ -14,6 +15,19 @@ const Sidebar = () => {
     { icon: LineChart, label: 'MoodBoard', path: 'moodboard' },
     { icon: Wrench, label: 'MoodKit', path: 'moodkit' }
   ];
+
+  const supabase = createClient(
+    import.meta.env.VITE_SUPABASE_URL,
+    import.meta.env.VITE_SUPABASE_ANON_KEY
+  );
+
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/login');
+
+  }
 
   return (
     <div className="min-h-screen bg-linear-to-bl rounded-tr-3xl shadow-lg from-purple-300 via-purple-200 to-purple-100 w-64 p-6 flex flex-col">
@@ -51,13 +65,14 @@ const Sidebar = () => {
 
       {/* Footer or Additional Info */}
       <div className="flex flex-col gap-4 w-40 mx-auto">
-        <div className='btn btn-active rounded-2xl text-xl p-3 text-purple-600 font-semibold'>
+        <Link to="profile" className='btn btn-active rounded-2xl text-xl p-3 text-purple-600 font-semibold'>
           <UserPen className='h-5 w-5' />
           Profile
-        </div>
-        <div className='btn btn-error bg-red-500 rounded-2xl text-xl text-white p-3 text-black font-semibold'>
+        </Link>
+        <div className='btn btn-error bg-red-500 rounded-2xl text-xl text-white p-3 text-black font-semibold' onClick={handleLogout}>
           <LogOut className='h-5 w-5' />
-          Logout</div>
+          Logout
+        </div>
       </div>
     </div>
   );

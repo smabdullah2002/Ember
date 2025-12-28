@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
 import { Heart, MessageCircle, Send, User, Clock, TrendingUp, Plus, X, MoreVertical, Flag, Edit, Trash2 } from 'lucide-react';
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+    import.meta.env.VITE_SUPABASE_URL,
+    import.meta.env.VITE_SUPABASE_ANON_KEY
+);
 
 const CommunitySupportForum = () => {
     const [posts, setPosts] = useState([
@@ -46,7 +52,10 @@ const CommunitySupportForum = () => {
         { id: 'general', label: 'General', color: 'teal' }
     ];
 
+    const{data: userData}= supabase.auth.getUser();
+
     const handleCreatePost = () => {
+        
         if (newPost.title.trim() && newPost.content.trim()) {
             const post = {
                 id: Date.now(),

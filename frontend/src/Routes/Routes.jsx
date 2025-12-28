@@ -11,6 +11,7 @@ import MoodBoard from "../Pages/MoodBoard/MoodBoard";
 import MoodDashboard from "../Pages/MoodDashboard/MoodDashboard";
 import MentalHealthHub from "@/components/Helphub/Helphub";
 import CommunitySupportForum from "@/components/Community/Post";
+import UserProfile from "@/Pages/Profile/Profile";
 
 
 
@@ -65,6 +66,10 @@ const router = createBrowserRouter([
       {
         path:"community",
         element:<CommunitySupportForum/>
+      },
+      {
+        path: "profile",
+        element:<UserProfile/>
       }
     ]
   }

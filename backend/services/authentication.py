@@ -1,12 +1,9 @@
 from config import supabase
 from schemas.auth import SignupSchema
 from fastapi import HTTPException, status, Request
-from fastapi.security import (
-    OAuth2PasswordBearer,
-)
-from fastapi import Depends
-from jose import jwt
-from config import SUPABASE_JWT_SECRET
+
+
+
 
 
 async def create_user(user: SignupSchema):
@@ -26,5 +23,15 @@ async def create_user(user: SignupSchema):
     ).execute()
 
     return response.user
+
+
+async def login_user(email: str, password: str):
+    response = supabase.auth.sign_in_with_password({"email": email, "password": password})
+    if not response.user or not response.session or not response.session.access_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password"
+        )
+
+    return response
 
 
