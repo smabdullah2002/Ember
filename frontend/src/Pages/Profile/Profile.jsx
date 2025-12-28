@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Calendar, Edit, Save, X, Camera, MapPin, Phone, Heart, MessageCircle, BookOpen, Activity, Lock, Eye, EyeOff } from 'lucide-react';
+import { User, Mail, Calendar, Edit, Save, X, Camera, MapPin, Phone, Heart, MessageCircle, BookOpen, Activity, Lock, Eye, EyeOff, FileText, Trash2 } from 'lucide-react';
 import { createClient } from "@supabase/supabase-js";
+import axios from 'axios';
 
 const supabase = createClient(
     import.meta.env.VITE_SUPABASE_URL,
@@ -25,10 +26,15 @@ const UserProfile = () => {
         confirm: false
     });
     const [passwordError, setPasswordError] = useState('');
+    const [userPosts, setUserPosts] = useState([]);
+    const [editingPostId, setEditingPostId] = useState(null);
+    const [editedPost, setEditedPost] = useState({ title: '', content: '', catagory: '' });
+
 
     // Mock function - Replace with your Supabase query
     useEffect(() => {
         const fetchUserData = async () => {
+
             const { data } = await supabase.auth.getUser();
             const user_id = data.user.id;
 
@@ -37,6 +43,8 @@ const UserProfile = () => {
                 .select('*')
                 .eq('id', user_id)
                 .single();
+
+            const postCount = await fetchUserPosts();
 
             // Mock data for demonstration
             setTimeout(() => {
@@ -50,8 +58,7 @@ const UserProfile = () => {
                     joinedDate: data.user.created_at,
                     avatar: null,
                     stats: {
-                        postsCreated: 12,
-                        commentsGiven: 45,
+                        postsCreated: postCount,
                         journalEntries: 28,
                         supportReceived: 89
                     }
@@ -61,9 +68,122 @@ const UserProfile = () => {
                 setLoading(false);
             }, 100);
         };
-
+        fetchUserPosts();
         fetchUserData();
+
     }, []);
+
+    const fetchUserPosts = async () => {
+        try {
+            const { data } = await supabase.auth.getUser();
+            const user_id = data.user.id;
+
+            const response = await axios.get("http://127.0.0.1:8000/community/posts");
+
+            // Filter posts by current user
+            const userPosts = response.data.posts.filter(post => post.author_id === user_id);
+            setUserPosts(userPosts);
+            return userPosts.length;
+        } catch (error) {
+            console.error("Error fetching user posts:", error);
+        }
+
+    };
+
+    const handleEditPost = (post) => {
+        setEditingPostId(post.id);
+        setEditedPost({
+            title: post.title,
+            content: post.content,
+            catagory: post.catagory
+        });
+    };
+
+    const handleCancelEditPost = () => {
+        setEditingPostId(null);
+        setEditedPost({ title: '', content: '', catagory: '' });
+    };
+
+    const handleSavePost = async (postId) => {
+        try {
+            const { data } = await supabase.auth.getSession();
+            const token = data.session.access_token;
+
+            await axios.put(
+                `http://127.0.0.1:8000/community/post/${postId}`,
+                editedPost,
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    }
+                }
+            );
+
+            // Update local state
+            setUserPosts(userPosts.map(post =>
+                post.id === postId
+                    ? { ...post, ...editedPost }
+                    : post
+            ));
+
+            setEditingPostId(null);
+            setEditedPost({ title: '', content: '', catagory: '' });
+        } catch (error) {
+            console.error("Error updating post:", error);
+            alert("Failed to update post");
+        }
+    };
+
+    const handleDeletePost = async (postId) => {
+        if (!confirm("Are you sure you want to delete this post?")) return;
+
+        try {
+            const { data } = await supabase.auth.getSession();
+            const token = data.session.access_token;
+
+            await axios.delete(
+                `http://127.0.0.1:8000/community/post/${postId}`,
+                {
+                    headers: {
+                        "Authorization": `Bearer ${token}`
+                    }
+                }
+            );
+
+            // Remove from local state
+            setUserPosts(userPosts.filter(post => post.id !== postId));
+        } catch (error) {
+            console.error("Error deleting post:", error);
+            alert("Failed to delete post");
+        }
+    };
+
+    const formatTime = (timestamp) => {
+        if (!timestamp) return "Just now";
+
+        const now = new Date();
+        const postTime = new Date(timestamp);
+        const diffMs = now - postTime;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+
+        if (diffMins < 1) return "Just now";
+        if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+        if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+        return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    };
+
+    const getCategoryColor = (catagory) => {
+        const colors = {
+            'anxiety': 'blue',
+            'depression': 'indigo',
+            'stress': 'pink',
+            'general': 'teal'
+        };
+        return colors[catagory] || 'gray';
+    };
 
     const handleEdit = () => {
         setIsEditing(true);
@@ -263,15 +383,7 @@ const UserProfile = () => {
                                             {userData.stats.postsCreated}
                                         </span>
                                     </div>
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <Heart className="w-4 h-4 text-pink-600" />
-                                            <span className="text-sm text-gray-700">Comments</span>
-                                        </div>
-                                        <span className="font-semibold text-pink-600">
-                                            {userData.stats.commentsGiven}
-                                        </span>
-                                    </div>
+
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
                                             <BookOpen className="w-4 h-4 text-blue-600" />
@@ -428,6 +540,132 @@ const UserProfile = () => {
                                     Change Password
                                 </button>
                             </div>
+                        </div>
+
+                        {/* My Posts Section */}
+                        <div className="backdrop-blur-md bg-white/80 rounded-3xl shadow-xl border border-purple-200/50 p-8">
+                            <h3 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
+                                <FileText className="w-6 h-6 text-purple-600" />
+                                My Posts
+                            </h3>
+
+                            {userPosts.length === 0 ? (
+                                <div className="text-center py-8">
+                                    <MessageCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                    <p className="text-gray-500">You haven't created any posts yet.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {userPosts.map((post) => (
+                                        <div
+                                            key={post.id}
+                                            className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-all duration-300"
+                                        >
+                                            {editingPostId === post.id ? (
+                                                // Edit Mode
+                                                <div className="space-y-4">
+                                                    <div>
+                                                        <label className="text-sm font-medium text-gray-600 mb-2 block">
+                                                            Title
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            value={editedPost.title}
+                                                            onChange={(e) => setEditedPost({ ...editedPost, title: e.target.value })}
+                                                            className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-sm font-medium text-gray-600 mb-2 block">
+                                                            Content
+                                                        </label>
+                                                        <textarea
+                                                            value={editedPost.content}
+                                                            onChange={(e) => setEditedPost({ ...editedPost, content: e.target.value })}
+                                                            rows="4"
+                                                            className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-purple-300"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-sm font-medium text-gray-600 mb-2 block">
+                                                            Category
+                                                        </label>
+                                                        <select
+                                                            value={editedPost.catagory}
+                                                            onChange={(e) => setEditedPost({ ...editedPost, catagory: e.target.value })}
+                                                            className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300"
+                                                        >
+                                                            <option value="general">General</option>
+                                                            <option value="anxiety">Anxiety</option>
+                                                            <option value="depression">Depression</option>
+                                                            <option value="stress">Stress</option>
+                                                        </select>
+                                                    </div>
+                                                    <div className="flex gap-3">
+                                                        <button
+                                                            onClick={() => handleSavePost(post.id)}
+                                                            className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-medium px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2"
+                                                        >
+                                                            <Save className="w-4 h-4" />
+                                                            Save Changes
+                                                        </button>
+                                                        <button
+                                                            onClick={handleCancelEditPost}
+                                                            className="flex-1 bg-gray-300 text-gray-700 font-medium px-4 py-2 rounded-lg hover:bg-gray-400 transition-all duration-300 flex items-center justify-center gap-2"
+                                                        >
+                                                            <X className="w-4 h-4" />
+                                                            Cancel
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                // View Mode
+                                                <>
+                                                    <div className="flex items-start justify-between mb-3">
+                                                        <div className="flex-1">
+                                                            <h4 className=" font-semibold text-gray-800 mb-3">{post.author}</h4>
+                                                            <div className="h-px bg-gradient-to-r from-purple-200 via-pink-200 to-transparent mb-4"></div>
+                                                            <div className='flex justify-between'>
+                                                                <h4 className="text-xl font-semibold text-blue-800 mb-2">
+                                                                    {post.title}
+                                                                </h4>
+                                                                <div className="flex items-center gap-2 mb-3">
+                                                                    <span className={`px-3 py-1 rounded-full text-xs font-medium bg-${getCategoryColor(post.catagory)}-100 text-${getCategoryColor(post.catagory)}-700`}>
+                                                                        {post.catagory}
+                                                                    </span>
+                                                                    <span className="text-xs text-gray-500">
+                                                                        {formatTime(post.created_at)}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+
+                                                        </div>
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                onClick={() => handleEditPost(post)}
+                                                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200"
+                                                                title="Edit post"
+                                                            >
+                                                                <Edit className="w-5 h-5" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeletePost(post.id)}
+                                                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
+                                                                title="Delete post"
+                                                            >
+                                                                <Trash2 className="w-5 h-5" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <p className="text-gray-700 leading-relaxed text-xl">
+                                                        {post.content}
+                                                    </p>
+                                                </>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                     </div>

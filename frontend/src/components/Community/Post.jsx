@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Heart, MessageCircle, Send, User, Clock, TrendingUp, Plus, X, MoreVertical, Flag, Edit, Trash2 } from 'lucide-react';
 import { createClient } from "@supabase/supabase-js";
+import { time } from 'motion';
+import axios from 'axios';
 
 const supabase = createClient(
     import.meta.env.VITE_SUPABASE_URL,
@@ -8,41 +10,15 @@ const supabase = createClient(
 );
 
 const CommunitySupportForum = () => {
-    const [posts, setPosts] = useState([
-        {
-            id: 1,
-            author: 'Anonymous User',
-            avatar: '👤',
-            time: '2 hours ago',
-            title: 'Struggling with anxiety lately',
-            content: 'I\'ve been feeling really anxious about everything. Even small tasks feel overwhelming. Has anyone else experienced this? How do you cope?',
-            likes: 12,
-            comments: [
-                {
-                    id: 1,
-                    author: 'Supportive Friend',
-                    avatar: '🌟',
-                    time: '1 hour ago',
-                    content: 'You\'re not alone! I\'ve been there. Try deep breathing exercises and remember to take things one step at a time. You\'ve got this! 💙'
-                },
-                {
-                    id: 2,
-                    author: 'Caring Soul',
-                    avatar: '💚',
-                    time: '45 minutes ago',
-                    content: 'Breaking tasks into smaller chunks really helped me. Also, don\'t hesitate to reach out to a professional if you need to. Sending you strength!'
-                }
-            ],
-            category: 'anxiety',
-            isLiked: false
-        }
-    ]);
+    const [posts, setPosts] = useState([]);
 
     const [showPostModal, setShowPostModal] = useState(false);
     const [selectedPost, setSelectedPost] = useState(null);
-    const [newPost, setNewPost] = useState({ title: '', content: '', category: 'general', author: '' });
+    const [newPost, setNewPost] = useState({ title: '', content: '', catagory: 'general', author: '' });
     const [newComment, setNewComment] = useState({});
     const [filter, setFilter] = useState('all');
+    const [postType, setPostType] = useState("user");
+
 
     const categories = [
         { id: 'all', label: 'All Posts', color: 'purple' },
@@ -52,28 +28,111 @@ const CommunitySupportForum = () => {
         { id: 'general', label: 'General', color: 'teal' }
     ];
 
-    const{data: userData}= supabase.auth.getUser();
+    const fetchUserData = async () => {
+        const { data, error } = await supabase.auth.getUser();
+        if (error) return null;
+        return data.user;
+    };
+    const handleCreatePost = async () => {
+        if (!newPost.title.trim() || !newPost.content.trim()) return;
 
-    const handleCreatePost = () => {
-        
-        if (newPost.title.trim() && newPost.content.trim()) {
-            const post = {
-                id: Date.now(),
-                author: newPost.author.trim() || 'Anonymous User',
-                avatar: getRandomAvatar(),
-                time: 'Just now',
-                title: newPost.title,
-                content: newPost.content,
-                category: newPost.category,
-                likes: 0,
-                comments: [],
+        let userId = null;
+        let author = "Anonymous";
+
+        if (postType === "user") {
+            const user = await fetchUserData();
+            if (!user) return; // not logged in
+            const { data: profileData } = await supabase
+                .from('profile')
+                .select('first_name')
+                .eq('id', user.id)
+                .single();
+            userId = user.id;
+            author = profileData.first_name||"NULL"; // or name
+        }
+
+        const post = {
+            // id: Date.now(),
+            title: newPost.title,
+            content: newPost.content,
+            catagory: newPost.catagory,
+            user_id: userId,        // null if anonymous
+            author: author,
+            avatar: postType === "user" ? "👤" : "🕶️",
+            time: "just now",
+            likes: 0,
+            comments: [],
+            isLiked: false,
+        };
+
+        try {
+            const { data } = await supabase.auth.getSession();
+            const token = data.session.access_token;
+            await axios.post(
+                "http://127.0.0.1:8000/community/post",
+                post,
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    }
+                }
+            )
+        } catch {
+            console.error("Error creating post");
+            return;
+        }
+
+        setPosts([post, ...posts]);
+        setNewPost({ title: "", content: "", catagory: "general" });
+        setShowPostModal(false);
+    };
+
+
+    const fetchPosts = async () => {
+        try {
+            const response = await axios.get("http://127.0.0.1:8000/community/posts");
+            console.log("Fetched posts:", response.data); // Debug
+
+            // Map backend posts to UI format
+            const formattedPosts = response.data.posts.map(post => ({
+                id: post.id,
+                author: post.author || "Anonymous",
+                avatar: post.author? "👤" : "🕶️",
+                time: formatTime(post.created_at), // You'll need to format the timestamp
+                title: post.title,
+                content: post.content,
+                catagory: post.catagory,
+                likes: 0, // TODO: Fetch from backend if you track likes
+                comments: [], // TODO: Fetch comments if stored
                 isLiked: false
-            };
-            setPosts([post, ...posts]);
-            setNewPost({ title: '', content: '', category: 'general', author: '' });
-            setShowPostModal(false);
+            }));
+
+            setPosts(formattedPosts);
+        } catch (error) {
+            console.error("Error fetching posts:", error);
+            console.error("Error details:", error.response?.data);
         }
     };
+    const formatTime = (timestamp) => {
+        if (!timestamp) return "Just now";
+
+        const now = new Date();
+        const postTime = new Date(timestamp);
+        const diffMs = now - postTime;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+
+        if (diffMins < 1) return "Just now";
+        if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+        if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+        return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    };
+
+    useEffect(() => {
+        fetchPosts();
+    }, []);
 
     const handleAddComment = (postId) => {
         if (newComment[postId]?.trim()) {
@@ -117,12 +176,12 @@ const CommunitySupportForum = () => {
         return avatars[Math.floor(Math.random() * avatars.length)];
     };
 
-    const getCategoryColor = (category) => {
-        const cat = categories.find(c => c.id === category);
+    const getCategoryColor = (catagory) => {
+        const cat = categories.find(c => c.id === catagory);
         return cat ? cat.color : 'gray';
     };
 
-    const filteredPosts = filter === 'all' ? posts : posts.filter(post => post.category === filter);
+    const filteredPosts = filter === 'all' ? posts : posts.filter(post => post.catagory === filter);
 
     return (
         <div className="min-h-screen p-6">
@@ -169,15 +228,15 @@ const CommunitySupportForum = () => {
                         Share Your Thoughts
                     </button>
 
-                    {/* Category Filters */}
+                    {/* catagory Filters */}
                     <div className="flex flex-wrap gap-3">
                         {categories.map((cat) => (
                             <button
                                 key={cat.id}
                                 onClick={() => setFilter(cat.id)}
                                 className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${filter === cat.id
-                                        ? `bg-gradient-to-r from-${cat.color}-500 to-${cat.color}-600 text-white shadow-lg`
-                                        : 'bg-white/50 text-gray-700 hover:bg-white/80'
+                                    ? `bg-gradient-to-r from-${cat.color}-500 to-${cat.color}-600 text-white shadow-lg`
+                                    : 'bg-white/50 text-gray-700 hover:bg-white/80'
                                     }`}
                             >
                                 {cat.label}
@@ -193,7 +252,7 @@ const CommunitySupportForum = () => {
                             <div className="w-20 h-20 rounded-full bg-purple-100 flex items-center justify-center mx-auto mb-4">
                                 <MessageCircle className="w-10 h-10 text-purple-400" />
                             </div>
-                            <p className="text-gray-600 text-lg mb-2">No posts yet in this category</p>
+                            <p className="text-gray-600 text-lg mb-2">No posts yet in this catagory</p>
                             <p className="text-gray-500 text-sm">Be the first to share your thoughts!</p>
                         </div>
                     ) : (
@@ -216,8 +275,8 @@ const CommunitySupportForum = () => {
                                             </div>
                                         </div>
                                     </div>
-                                    <span className={`px-3 py-1 rounded-full text-xs font-medium bg-${getCategoryColor(post.category)}-100 text-${getCategoryColor(post.category)}-700`}>
-                                        {categories.find(c => c.id === post.category)?.label}
+                                    <span className={`px-3 py-1 rounded-full text-xs font-medium bg-${getCategoryColor(post.catagory)}-100 text-${getCategoryColor(post.catagory)}-700`}>
+                                        {categories.find(c => c.id === post.catagory)?.label}
                                     </span>
                                 </div>
 
@@ -333,23 +392,26 @@ const CommunitySupportForum = () => {
                                 {/* Author Name (Optional) */}
                                 <div className="mb-4">
                                     <label className="text-sm text-gray-600 mb-2 block">
-                                        Your Name <span className="text-gray-400">(Optional - Leave blank to post anonymously)</span>
+                                        Post as
                                     </label>
-                                    <input
-                                        type="text"
-                                        placeholder="Anonymous User"
-                                        value={newPost.author}
-                                        onChange={(e) => setNewPost({ ...newPost, author: e.target.value })}
+
+
+                                    <select
+                                        value={postType}
+                                        onChange={(e) => setPostType(e.target.value)}
                                         className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-transparent transition-all duration-300"
-                                    />
+                                    >
+                                        <option value="user">Post as me</option>
+                                        <option value="anonymous">Post anonymously</option>
+                                    </select>
                                 </div>
 
-                                {/* Category Selection */}
+                                {/* catagory Selection */}
                                 <div className="mb-4">
-                                    <label className="text-sm text-gray-600 mb-2 block">Category</label>
+                                    <label className="text-sm text-gray-600 mb-2 block">catagory</label>
                                     <select
-                                        value={newPost.category}
-                                        onChange={(e) => setNewPost({ ...newPost, category: e.target.value })}
+                                        value={newPost.catagory}
+                                        onChange={(e) => setNewPost({ ...newPost, catagory: e.target.value })}
                                         className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-transparent transition-all duration-300"
                                     >
                                         {categories.filter(c => c.id !== 'all').map((cat) => (
