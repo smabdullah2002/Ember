@@ -3,9 +3,6 @@ from schemas.auth import SignupSchema
 from fastapi import HTTPException, status, Request
 
 
-
-
-
 async def create_user(user: SignupSchema):
     response = supabase.auth.sign_up({"email": user.email, "password": user.password})
     if not response.user:
