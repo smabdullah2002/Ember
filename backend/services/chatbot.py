@@ -1,9 +1,13 @@
-from schemas.chat import ChatRequest
+# services/chatbot.py
 from google import genai
-from google.genai import types
 from dotenv import load_dotenv
 import os
+from config import supabase
+import json
+import re
+from datetime import date
 
+load_dotenv()
 API_KEY = os.getenv("API_KEY")
 client = genai.Client(api_key=API_KEY)
 
@@ -41,49 +45,192 @@ You are a mental health recovery planner speaking directly to the user. Your tas
 5. Build a graduated self-care routine that evolves with their recovery
 6. Plan for setbacks with self-compassion techniques
 7. Set up a maintenance schedule with clear check-in mechanisms
-8. When the user asks for a "daily routine", "checklist", "wellness plan",
-    "task list", or explicitly requests JSON output:
-    - Give 5-7 specific, actionable tasks focused on mental wellness.
-    - Respond ONLY with a valid JSON object.
-    - Use this structure exactly:
+8. When the user asks for a "daily routine", "checklist", "wellness plan", "task list", or explicitly requests JSON output:
+   - Give 5-7 specific, actionable tasks focused on mental wellness.
+   - Respond ONLY with a valid JSON object.
+   - Use this structure exactly:
+   {
+     "routine_name": "string",
+     "items": [
+       {
+         "id": "int",
+         "task": "string",
+         "completed": false
+       }
+     ]
+   }
 
-    {
-    "routine_name": "string",
-    "items": [
-        { "id":"int", "task": "string", "completed": false }
-    ]
-    }
-
-    Rules:
-    - Never include explanation outside JSON when JSON mode is requested.
-    - JSON must be valid. No trailing commas, no additional text.
-    - Keep tasks short and actionable.
+Rules:
+- Never include explanation outside JSON when JSON mode is requested.
+- JSON must be valid. No trailing commas, no additional text.
+- Keep tasks short and actionable.
 
 Focus on building sustainable habits that integrate with their lifestyle and values. Emphasize progress over perfection and teach skills for self-directed care.
 """,
 }
 
 
-async def chat_endpoint(request: ChatRequest):
-    user_msg = request.message
-    prompt = f"""
-            You are a mental health assistant with three specialized roles:
-            1. Assessment Agent:  {agents['assessment_agent'].strip()}
-            2. Action Agent: {agents['action_agent'].strip()}
-            3. Followup Agent: {agents['followup_agent'].strip()}
+async def chat_endpoint(user_id: str, user_msg: str):
+    try:
 
-            Read the user's message and choose the most appropriate role automatically.
-            Then respond following the instructions of that role, blending empathy, safety, and practicality.
-            Respond naturally as a human-like assistant. Respond consciously and avoid generic or overly formal language. 
-            Also, avoid repeating the instructions in your response and give concise answers, 
-            focusing on what the user needs most in this moment.
-            Remember: If the user speaks in Bangla or any other language, respond in the same language. And you
-            are not only an assistant but act like a friend who cares about the user's mental health.
-           
-            """
+        save_message(user_id, "user", user_msg)
+        history = await get_chat_history(user_id)
 
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=prompt + "\n" + user_msg,
-    )
-    return {"response": response.text}
+        system_prompt = f"""
+                            You are a mental health assistant with three specialized roles:
+
+                            1. Assessment Agent: {agents['assessment_agent'].strip()}
+
+                            2. Action Agent: {agents['action_agent'].strip()}
+
+                            3. Followup Agent: {agents['followup_agent'].strip()}
+
+                            Read the user's message and choose the most appropriate role automatically. Then respond following the instructions of that role, blending empathy, safety, and practicality.
+
+                            Respond naturally as a human-like assistant. Respond consciously and avoid generic or overly formal language. Also, avoid repeating the instructions in your response and give concise answers, focusing on what the user needs most in this moment.
+
+                            Remember: If the user speaks in Bangla or any other language, respond in the same language. And you are not only an assistant but act like a friend who cares about the user's mental health.
+                            """
+
+        if len(history) == 0:
+            content = [
+                {
+                    "role": "user",
+                    "parts": [{"text": f"{system_prompt}\n\nUser message: {user_msg}"}],
+                },
+            ]
+        else:
+            content = [
+                {"role": "user", "parts": [{"text": system_prompt}]},
+                {
+                    "role": "model",
+                    "parts": [
+                        {
+                            "text": "I understand. I'm ready to help as your mental health assistant."
+                        }
+                    ],
+                },
+                *history,
+                {"role": "user", "parts": [{"text": user_msg}]},
+            ]
+
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=content,
+        )
+        # print("boooooooooottttttttttt", response.text)
+        
+        is_checklist = False
+        checklist_items = []
+        try:
+            # Handle both multiline and single-line ```json blocks
+            match = re.search(r"```json\s*(\{.*?\})\s*```", response.text, re.DOTALL)
+            if match:
+                json_str = match.group(1).strip()
+            else:
+                # Fallback: try parsing the whole response as JSON
+                json_str = response.text.strip()
+
+            parsed = json.loads(json_str)
+            if "items" in parsed:
+                is_checklist = True
+                checklist_items = parsed["items"]
+                print(f"Parsed checklist: {checklist_items}")
+        except Exception as e:
+            print(f"Not a checklist response: {e}")
+        
+        if is_checklist:
+            save_checklist(user_id, checklist_items)
+        else:
+            save_message(user_id, "model", response.text)
+
+        return {"response": response.text}
+
+    except Exception as e:
+        print(f"Error in chat_endpoint: {str(e)}")
+        import traceback
+
+        traceback.print_exc()
+        raise
+
+
+async def get_chat_history(user_id: str):
+    try:
+        res = (
+            supabase.table("messages")
+            .select("role, content")
+            .eq("user_id", user_id)
+            .order("created_at")
+            .limit(15)
+        ).execute()
+
+        history = []
+        for m in res.data:
+            role = m["role"]
+
+            if role == "bot":
+                role = "model"
+
+            if role in ["user", "model"]:
+                history.append({"role": role, "parts": [{"text": m["content"]}]})
+        return history
+
+    except Exception as e:
+        print(f"Error getting chat history: {str(e)}")
+        return []
+
+
+def save_message(user_id: str, role: str, content: str):
+    """
+    Save a message to the database.
+    Converts 'model' to 'bot' for storage consistency.
+    """
+    try:
+        # Store as 'bot' instead of 'model' for frontend compatibility
+        storage_role = "bot" if role == "model" else role
+
+        supabase.table("messages").insert(
+            {
+                "user_id": user_id,
+                "role": storage_role,
+                "content": content,
+            }
+        ).execute()
+
+        print(f"Saved message: {storage_role} - {content[:50]}...")
+
+    except Exception as e:
+        print(f"Error saving message: {str(e)}")
+        raise
+
+def save_checklist(user_id:str, items:list):
+    today=date.today().isoformat()
+    supabase.table("wellness_checklist").upsert(
+        {
+            "user_id": user_id,
+            "date": today,
+            "items": items
+        },
+        on_conflict="user_id,date",
+    ).execute()
+    return {"message": "Checklist saved successfully."}
+
+async def get_checklist(user_id:str):
+    today=date.today().isoformat()
+    res = supabase.table("wellness_checklist").select("items").eq("user_id", user_id).eq("date", today).execute()
+    if res.data and len(res.data) > 0:
+        return {"items": res.data[0]["items"]}
+    else:
+        return {"items": []}
+
+async def update_checklist(user_id:str, items:list):
+    today=date.today().isoformat()
+    supabase.table("wellness_checklist").update(
+        {
+            "items": items
+        }
+    ).eq("user_id", user_id).eq("date", today).execute()
+    return {"message": "Checklist updated successfully."}
+
+
+

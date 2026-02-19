@@ -1,17 +1,21 @@
 import { useState } from 'react';
 import axios from 'axios';
 import ReactMarkdown from "react-markdown";
-import WellnessList from '../WellnessList/WellnessList';
-import { Link } from 'react-router';
 import { useEffect, useRef } from "react";
 import UseStore from '../../store/UseStore';
 import { Send, Sparkles } from 'lucide-react';
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+    import.meta.env.VITE_SUPABASE_URL,
+    import.meta.env.VITE_SUPABASE_ANON_KEY
+);
 
 const Chat = () => {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
-    const { setWellnessData } = UseStore();
+    const { setWellnessmsg } = UseStore();
 
     const sendMessage = async () => {
         if (input.trim() === "") return;
@@ -24,11 +28,20 @@ const Chat = () => {
         setInput("");
 
         try {
-            const res = await axios.post("http://127.0.0.1:8000/chat", { message: input });
+            const { data } = await supabase.auth.getSession();
+            const token = data.session.access_token;
+            const res = await axios.post("http://127.0.0.1:8000/chat", { message: input },
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    }
+                }
+            );
+            console.log("-----------------",res);
+            const msg = res.data.response;
 
-            const data = res.data.response;
-
-            let text = String(data).trim();
+            let text = String(msg).trim();
 
             if (text.startsWith("```")) {
                 text = text.replace(/```json|```/g, "").trim();
@@ -39,12 +52,12 @@ const Chat = () => {
             try {
                 parsedJson = JSON.parse(text);
                 console.log("Parsed JSON:", parsedJson.items);
-                setWellnessData(parsedJson);
+                setWellnessmsg(parsedJson);
             } catch {
                 console.log("AI TEXT:", text);
             }
 
-            setMessages([...newMessage, { from: "ai", text: data }]);
+            setMessages([...newMessage, { from: "ai", text: msg }]);
             setLoading(false);
         }
         catch (err) {
@@ -52,7 +65,7 @@ const Chat = () => {
             setMessages([...newMessage, { from: "ai", text: "Server error" }]);
         }
     }
-    
+
     const messagesEndRef = useRef(null);
 
     useEffect(() => {
@@ -78,7 +91,7 @@ const Chat = () => {
             {/* Chat Container */}
             <div className="max-w-4xl mx-auto">
                 <div className="backdrop-blur-md bg-white/70 rounded-3xl shadow-2xl border border-purple-200/50 h-[calc(100vh-180px)] flex flex-col overflow-hidden">
-                    
+
                     {/* Messages Area */}
                     <div className="flex-1 overflow-y-auto p-6 space-y-6">
                         {messages.length === 0 && (
@@ -107,20 +120,19 @@ const Chat = () => {
                                             <span className='text-xs text-gray-500 font-medium'>Ember</span>
                                         </div>
                                     )}
-                                    
-                                    <div className={`rounded-2xl px-5 py-3 shadow-md ${
-                                        msg.from === "user" 
-                                            ? "bg-linear-to-br from-blue-500 to-blue-600 text-white" 
-                                            : "bg-white/80 backdrop-blur-sm text-gray-800 border border-purple-100"
-                                    }`}>
+
+                                    <div className={`rounded-2xl px-5 py-3 shadow-md ${msg.from === "user"
+                                        ? "bg-linear-to-br from-blue-500 to-blue-600 text-white"
+                                        : "bg-white/80 backdrop-blur-sm text-gray-800 border border-purple-100"
+                                        }`}>
                                         <div className='prose prose-sm max-w-none'>
                                             <ReactMarkdown
                                                 components={{
-                                                    p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
-                                                    ul: ({node, ...props}) => <ul className="mb-2 last:mb-0" {...props} />,
-                                                    ol: ({node, ...props}) => <ol className="mb-2 last:mb-0" {...props} />,
-                                                    code: ({node, inline, ...props}) => 
-                                                        inline 
+                                                    p: ({ node, ...props }) => <p className="mb-2 last:mb-0" {...props} />,
+                                                    ul: ({ node, ...props }) => <ul className="mb-2 last:mb-0" {...props} />,
+                                                    ol: ({ node, ...props }) => <ol className="mb-2 last:mb-0" {...props} />,
+                                                    code: ({ node, inline, ...props }) =>
+                                                        inline
                                                             ? <code className="bg-purple-100 px-1 rounded text-sm" {...props} />
                                                             : <code className="block bg-purple-100 p-2 rounded text-sm" {...props} />
                                                 }}

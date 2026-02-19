@@ -15,6 +15,7 @@ import { format } from 'date-fns';
 import { BarChart3, CalendarDays, ChartPie } from 'lucide-react';
 import UseStore from '@/store/UseStore';
 import MoodHeatmap from './MoodHeatMap';
+import WellnessChecklist from './WellnessChecklist';
 
 const MOODS = {
   happy: { emoji: '😊', color: '#F59E0B' },
@@ -152,6 +153,7 @@ const MoodDashboard = () => {
 
 
         </div>
+        <WellnessChecklist/>
       </div>
     </div>
   );
