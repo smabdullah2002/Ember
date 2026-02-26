@@ -3,7 +3,7 @@ import axios from 'axios';
 import ReactMarkdown from "react-markdown";
 import { useEffect, useRef } from "react";
 import UseStore from '../../store/UseStore';
-import { Send, Sparkles } from 'lucide-react';
+import { Send, Sparkles, PlusSquare } from 'lucide-react';
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -15,7 +15,93 @@ const Chat = () => {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
+    const [historyLoading, setHistoryLoading] = useState(true);
+    const [historyError, setHistoryError] = useState("");
+    const [startingNewChat, setStartingNewChat] = useState(false);
     const { setWellnessmsg } = UseStore();
+
+    const CHAT_STORAGE_KEY = "chatMessages";
+
+    const extractChecklistJson = (text) => {
+        let cleaned = String(text || "").trim();
+
+        if (cleaned.startsWith("```")) {
+            cleaned = cleaned.replace(/```json|```/g, "").trim();
+        }
+
+        try {
+            const parsed = JSON.parse(cleaned);
+            if (parsed?.items && Array.isArray(parsed.items)) {
+                return parsed;
+            }
+        } catch {
+            return null;
+        }
+
+        return null;
+    };
+
+    const loadHistory = async () => {
+        setHistoryLoading(true);
+        setHistoryError("");
+
+        const cached = JSON.parse(localStorage.getItem(CHAT_STORAGE_KEY) || "[]");
+        if (cached?.length) {
+            setMessages(cached);
+        }
+
+        try {
+            const { data } = await supabase.auth.getSession();
+            const token = data?.session?.access_token;
+            if (!token) {
+                setHistoryLoading(false);
+                return;
+            }
+
+            const response = await axios.get("http://127.0.0.1:8000/chat/history", {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            const historyMessages = response?.data?.messages || [];
+            setMessages(historyMessages);
+            localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(historyMessages));
+        } catch (error) {
+            console.error("Failed to load chat history:", error.response?.data || error.message);
+            if (!cached?.length) {
+                setHistoryError("Could not load previous chat history.");
+            }
+        } finally {
+            setHistoryLoading(false);
+        }
+    };
+
+    const handleNewChat = async () => {
+        setStartingNewChat(true);
+        setHistoryError("");
+
+        try {
+            const { data } = await supabase.auth.getSession();
+            const token = data?.session?.access_token;
+
+            if (token) {
+                await axios.delete("http://127.0.0.1:8000/chat/history", {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+            }
+
+            setMessages([]);
+            localStorage.removeItem(CHAT_STORAGE_KEY);
+        } catch (error) {
+            console.error("Failed to start new chat:", error.response?.data || error.message);
+            setHistoryError("Could not clear chat history. Please try again.");
+        } finally {
+            setStartingNewChat(false);
+        }
+    };
 
     const sendMessage = async () => {
         if (input.trim() === "") return;
@@ -23,6 +109,7 @@ const Chat = () => {
         const newMessage = [...messages, { from: "user", text: input }];
 
         setMessages(newMessage);
+        localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(newMessage));
         console.log(messages)
         setLoading(true);
         setInput("");
@@ -49,20 +136,27 @@ const Chat = () => {
 
             let parsedJson = null;
 
-            try {
-                parsedJson = JSON.parse(text);
+            parsedJson = extractChecklistJson(text);
+            if (parsedJson) {
                 console.log("Parsed JSON:", parsedJson.items);
-                setWellnessmsg(parsedJson);
-            } catch {
+                if (setWellnessmsg) {
+                    setWellnessmsg(parsedJson);
+                }
+            } else {
                 console.log("AI TEXT:", text);
             }
 
-            setMessages([...newMessage, { from: "ai", text: msg }]);
+            const updatedMessages = [...newMessage, { from: "ai", text: msg }];
+            setMessages(updatedMessages);
+            localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(updatedMessages));
             setLoading(false);
         }
         catch (err) {
             console.error(err);
-            setMessages([...newMessage, { from: "ai", text: "Server error" }]);
+            const updatedMessages = [...newMessage, { from: "ai", text: "Server error" }];
+            setMessages(updatedMessages);
+            localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(updatedMessages));
+            setLoading(false);
         }
     }
 
@@ -71,6 +165,10 @@ const Chat = () => {
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages, loading]);
+
+    useEffect(() => {
+        loadHistory();
+    }, []);
 
     return (
         <div className='min-h-screen p-6'>
@@ -84,6 +182,14 @@ const Chat = () => {
                         <h1 className='text-3xl font-light text-transparent bg-clip-text bg-linear-to-r from-purple-600 to-pink-600'>
                             Ember Chatbot
                         </h1>
+                        <button
+                            onClick={handleNewChat}
+                            disabled={startingNewChat || loading}
+                            className='ml-4 inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/70 text-purple-700 border border-purple-200 hover:bg-white transition disabled:opacity-50'
+                        >
+                            <PlusSquare className='w-4 h-4' />
+                            {startingNewChat ? 'Starting...' : 'New Chat'}
+                        </button>
                     </div>
                 </div>
             </div>
@@ -94,6 +200,16 @@ const Chat = () => {
 
                     {/* Messages Area */}
                     <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                        {historyError && (
+                            <div className='text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3'>
+                                {historyError}
+                            </div>
+                        )}
+
+                        {historyLoading && messages.length === 0 && (
+                            <div className='text-center text-sm text-gray-500'>Loading chat history...</div>
+                        )}
+
                         {messages.length === 0 && (
                             <div className='flex flex-col items-center justify-center h-full text-center space-y-4'>
                                 <div className='w-20 h-20 rounded-full bg-linear-to-br from-purple-400 to-pink-400 flex items-center justify-center animate-pulse'>
@@ -128,10 +244,10 @@ const Chat = () => {
                                         <div className='prose prose-sm max-w-none'>
                                             <ReactMarkdown
                                                 components={{
-                                                    p: ({ node, ...props }) => <p className="mb-2 last:mb-0" {...props} />,
-                                                    ul: ({ node, ...props }) => <ul className="mb-2 last:mb-0" {...props} />,
-                                                    ol: ({ node, ...props }) => <ol className="mb-2 last:mb-0" {...props} />,
-                                                    code: ({ node, inline, ...props }) =>
+                                                    p: ({ ...props }) => <p className="mb-2 last:mb-0" {...props} />,
+                                                    ul: ({ ...props }) => <ul className="mb-2 last:mb-0" {...props} />,
+                                                    ol: ({ ...props }) => <ol className="mb-2 last:mb-0" {...props} />,
+                                                    code: ({ inline, ...props }) =>
                                                         inline
                                                             ? <code className="bg-purple-100 px-1 rounded text-sm" {...props} />
                                                             : <code className="block bg-purple-100 p-2 rounded text-sm" {...props} />

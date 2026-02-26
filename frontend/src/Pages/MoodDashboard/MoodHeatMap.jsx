@@ -7,20 +7,40 @@ const MOOD_COLORS = {
   positive: "bg-green-400",
 };
 
-// fake data example
-const moodByDate = {
-  "2025-08-01": "positive",
-  "2025-08-02": "neutral",
-  "2025-08-03": "negative",
-};
-
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-export default function MoodHeatmap() {
+const NEGATIVE_MOODS = new Set(["angry", "sad", "anxious"]);
+const NEUTRAL_MOODS = new Set(["surprised", "calm"]);
+
+function getMoodBucket(moodId) {
+  if (!moodId) return "none";
+  if (NEGATIVE_MOODS.has(moodId)) return "negative";
+  if (NEUTRAL_MOODS.has(moodId)) return "neutral";
+  return "positive";
+}
+
+function buildMoodByDate(entries = []) {
+  const sorted = [...entries].sort((a, b) => new Date(a.date) - new Date(b.date));
+  const result = {};
+
+  sorted.forEach((entry) => {
+    if (!entry?.date) return;
+    const key = format(new Date(entry.date), "yyyy-MM-dd");
+    result[key] = getMoodBucket(entry.moodId);
+  });
+
+  return result;
+}
+
+export default function MoodHeatmap({ entries = [], daysToShow = 30 }) {
   const today = new Date();
-  const days = Array.from({ length: 30 }, (_, i) =>
-    subDays(today, 29 - i)
+  const days = Array.from({ length: daysToShow }, (_, i) =>
+    subDays(today, daysToShow - 1 - i)
   );
+
+  const moodByDate = buildMoodByDate(entries);
+  const filledDays = days.filter((day) => moodByDate[format(day, "yyyy-MM-dd")]).length;
+  const completionPct = days.length ? Math.round((filledDays / days.length) * 100) : 0;
 
   // group days into weeks
   const weeks = [];
@@ -39,7 +59,7 @@ export default function MoodHeatmap() {
     <div className="rounded-2xl border border-purple-200/50 bg-white p-6 shadow-lg">
       {/* Header */}
       <div className="flex items-center gap-2 mb-4 text-purple-600 font-semibold">
-        📅 Mood Calendar (Past 30 Days)
+        📅 Mood Calendar (Past {daysToShow} Days)
       </div>
 
       <div className="flex gap-3">
@@ -86,6 +106,10 @@ export default function MoodHeatmap() {
       {/* Footer */}
       <div className="mt-3 text-center text-xs text-gray-400">
         Track your daily mood patterns · Each square represents a day
+      </div>
+
+      <div className="mt-2 text-center text-xs text-purple-600 font-medium">
+        Logged on {filledDays}/{days.length} days ({completionPct}%)
       </div>
 
       {/* Scale */}

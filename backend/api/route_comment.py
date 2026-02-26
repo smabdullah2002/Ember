@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
-from services.community_comment import add_comment
+from services.community_comment import add_comment, get_comments_paginated
 from schemas.comment import CommentSchema
 from config import supabase
 from fastapi import Query
@@ -26,21 +26,8 @@ async def post_comment(comment: CommentSchema, token: str = Depends(oauth2_schem
 
 @router.get("/community/comments/{post_id}")
 async def get_comments(
-    post_id: str, limit: int = Query(10, ge=1), offset: int = Query(0, ge=0)
+    post_id: str,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=100),
 ):
-    response = (
-        supabase.table("comments")
-        .select("*")
-        .eq("post_id", post_id)
-        .range(offset, offset + limit - 1)
-        .execute()
-    )
-
-    total = (
-        supabase.table("comments")
-        .select("id", count="exact")
-        .eq("post_id", post_id)
-        .execute()
-    ).count
-
-    return {"comments": response.data, "total": total}
+    return await get_comments_paginated(post_id, page, page_size)

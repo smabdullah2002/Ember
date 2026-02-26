@@ -3,6 +3,10 @@ import { User, Mail, Lock, Eye, EyeOff, Sparkles } from 'lucide-react';
 import { Link, useNavigate } from 'react-router';
 import axios from 'axios';
 
+const NAME_REGEX = /^[A-Za-z][A-Za-z\s'-]{1,49}$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
+
 const Registration = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -23,15 +27,40 @@ const Registration = () => {
     };
 
     const payload = {
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-        email: formData.email,
+        first_name: formData.firstName.trim(),
+        last_name: formData.lastName.trim(),
+        email: formData.email.trim(),
         password: formData.password,
         // confirm_password: formData.confirmPassword
     }
     const navigate = useNavigate();
 
     const handleSubmit = async () => {
+        const firstName = formData.firstName.trim();
+        const lastName = formData.lastName.trim();
+        const email = formData.email.trim();
+        const password = formData.password;
+
+        if (!NAME_REGEX.test(firstName)) {
+            alert("First name must be 2-50 characters and contain only letters, spaces, apostrophes, or hyphens.");
+            return;
+        }
+
+        if (!NAME_REGEX.test(lastName)) {
+            alert("Last name must be 2-50 characters and contain only letters, spaces, apostrophes, or hyphens.");
+            return;
+        }
+
+        if (!EMAIL_REGEX.test(email)) {
+            alert("Please enter a valid email address.");
+            return;
+        }
+
+        if (!PASSWORD_REGEX.test(password)) {
+            alert("Password must be at least 8 characters and include uppercase, lowercase, number, and special character.");
+            return;
+        }
+
         if (formData.password !== formData.confirmPassword) {
             alert("Passwords do not match");
             return;
@@ -183,6 +212,9 @@ const Registration = () => {
                                             {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                         </button>
                                     </div>
+                                    <p className="mt-2 text-xs text-gray-500">
+                                        Use 8+ characters with uppercase, lowercase, number, and special character.
+                                    </p>
                                 </div>
 
                                 {/* Confirm Password */}

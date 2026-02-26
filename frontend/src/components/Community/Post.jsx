@@ -10,6 +10,7 @@ const supabase = createClient(
 
 const CommunitySupportForum = () => {
     const [posts, setPosts] = useState([]);
+    const [postsLoading, setPostsLoading] = useState(true);
 
     const [showPostModal, setShowPostModal] = useState(false);
     const [selectedPost, setSelectedPost] = useState(null);
@@ -18,7 +19,9 @@ const CommunitySupportForum = () => {
     const [filter, setFilter] = useState('all');
     const [postType, setPostType] = useState("user");
     const [commentsLoading, setCommentsLoading] = useState({});
-    const [commentsPage, setCommentsPage] = useState({});
+    const [commentsPagination, setCommentsPagination] = useState({});
+    const [commentError, setCommentError] = useState({});
+
     const COMMENTS_PER_PAGE = 3;
 
 
@@ -94,6 +97,7 @@ const CommunitySupportForum = () => {
 
 
     const fetchPosts = async () => {
+        setPostsLoading(true);
         try {
             const { data: sessionData } = await supabase.auth.getSession();
             const userId = sessionData?.session?.user?.id;
@@ -107,12 +111,6 @@ const CommunitySupportForum = () => {
                 .eq("user_id", userId);
 
             const likedPostIds = new Set(userLikes?.map(l => l.post_id) || []);
-            
-            for (const post of response.data.posts) {
-                fetchComments(post.id);
-            }
-
-            
 
             const formattedPosts = response.data.posts.map(post => ({
                 id: post.id,
@@ -125,12 +123,14 @@ const CommunitySupportForum = () => {
                 likes: post.likes || 0,
                 comments: [],
                 isLiked: likedPostIds.has(post.id),  // ✅ correct on load
-                total_comments: post.total_comments || 0,
+                total_comments: post.total_comments ?? post.comment_count ?? post.comments_count ?? 0,
             }));
 
             setPosts(formattedPosts);
         } catch (error) {
             console.error("Error fetching posts:", error.response?.data);
+        } finally {
+            setPostsLoading(false);
         }
     };
     const formatTime = (timestamp) => {
@@ -153,15 +153,16 @@ const CommunitySupportForum = () => {
         fetchPosts();
     }, []);
 
-
     const handleAddComment = async (postId) => {
         if (!newComment[postId]?.trim()) return;
-        let userId = null;
+        setCommentError(prev => ({ ...prev, [postId]: null })); // clear previous error
 
+        let userId = null;
         const user = await fetchUserData();
         if (user) {
             userId = user.id;
         }
+
         const comment = {
             post_id: postId,
             user_id: userId,
@@ -171,7 +172,7 @@ const CommunitySupportForum = () => {
         try {
             const { data } = await supabase.auth.getSession();
             const token = data.session.access_token;
-            await axios.post(
+            const response = await axios.post(
                 "http://127.0.0.1:8000/community/comment",
                 comment,
                 {
@@ -181,58 +182,44 @@ const CommunitySupportForum = () => {
                     }
                 }
             )
+            console.log(response.data);
 
             setNewComment(prev => ({ ...prev, [postId]: '' }));
-
-            // Prepend the new comment to the post's comments
-            const authorName = user ? (await supabase
-                .from('profile')
-                .select('first_name')
-                .eq('id', user.id)
-                .single()).data.first_name || "Anonymous" : "Anonymous";
-            const newCommentObj = {
-                id: Date.now(), // Temporary ID, replace with backend ID if available   
-                author: authorName,
-                time: "Just now",
-                content: newComment[postId],
-                avatar: getRandomAvatar(),
-            };
-
             setPosts(prevPosts =>
-                prevPosts.map(post => {
-                    if (post.id === postId) {
-                        return {
-                            ...post,
-                            comments: [newCommentObj, ...post.comments],
-                        };
-                    }
-                    return post;
-                })
+                prevPosts.map(post =>
+                    post.id === postId
+                        ? { ...post, total_comments: (post.total_comments || 0) + 1 }
+                        : post
+                )
             );
-        } catch {
-            console.error("Error adding comment");
-            return;
-        }
 
+            if (selectedPost === postId) {
+                fetchComments(postId, 1, false);
+            }
+        } catch (error) {
+            if (error.response?.status === 400) {
+                setCommentError(prev => ({
+                    ...prev,
+                    [postId]: error.response.data.detail
+                }));
+            } else {
+                console.error("Error adding comment");
+            }
+        }
     }
 
-    const fetchComments = async (postId, page = null) => {
+    const fetchComments = async (postId, page = 1, append = false) => {
         if (commentsLoading[postId]) return;
-
-        // If no page specified, use the current page from state (or 0 if not set)
-        const currentPage = page !== null ? page : (commentsPage[postId] || 0);
 
         setCommentsLoading(prev => ({ ...prev, [postId]: true }));
 
         try {
-            const offset = currentPage * COMMENTS_PER_PAGE;
             const response = await axios.get(
-                `http://127.0.0.1:8000/community/comments/${postId}?limit=${COMMENTS_PER_PAGE}&offset=${offset}`
+                `http://127.0.0.1:8000/community/comments/${postId}?page=${page}&page_size=${COMMENTS_PER_PAGE}`
             );
 
             console.log(response.data);
-
-            const totalComments = response.data.total;
+            const pagination = response.data.pagination;
 
             // Fetch all authors in parallel
             const commentsWithAuthors = await Promise.all(
@@ -244,7 +231,7 @@ const CommunitySupportForum = () => {
                         .eq('id', comment.user_id)
                         .single();
 
-                    let authorName = data.first_name;
+                    const authorName = data?.first_name || "Anonymous";
 
 
 
@@ -263,8 +250,8 @@ const CommunitySupportForum = () => {
                     if (post.id === postId) {
                         return {
                             ...post,
-                            comments: currentPage === 0 ? commentsWithAuthors : [...post.comments, ...commentsWithAuthors],
-                            total_comments: totalComments
+                            comments: append ? [...post.comments, ...commentsWithAuthors] : commentsWithAuthors,
+                            total_comments: pagination?.total || 0
 
                         };
                     }
@@ -272,8 +259,10 @@ const CommunitySupportForum = () => {
                 })
             );
 
-            // Update to the next page
-            setCommentsPage(prev => ({ ...prev, [postId]: currentPage + 1 }));
+            setCommentsPagination(prev => ({
+                ...prev,
+                [postId]: pagination,
+            }));
         } catch (error) {
             console.error("Error fetching comments:", error);
         } finally {
@@ -284,8 +273,7 @@ const CommunitySupportForum = () => {
 
     useEffect(() => {
         if (selectedPost) {
-            setCommentsPage(prev => ({ ...prev, [selectedPost]: 0 }));
-            fetchComments(selectedPost, 0);
+            fetchComments(selectedPost, 1, false);
         }
 
     }, [selectedPost]);
@@ -396,7 +384,32 @@ const CommunitySupportForum = () => {
 
                 {/* Posts Feed */}
                 <div className="space-y-6">
-                    {filteredPosts.length === 0 ? (
+                    {postsLoading ? (
+                        Array.from({ length: 3 }).map((_, index) => (
+                            <div
+                                key={`loading-post-${index}`}
+                                className="backdrop-blur-md bg-white/80 rounded-3xl shadow-xl border border-purple-200/50 p-6 animate-pulse"
+                            >
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="w-12 h-12 rounded-full bg-purple-200"></div>
+                                    <div className="space-y-2 flex-1">
+                                        <div className="h-4 bg-purple-200 rounded w-1/4"></div>
+                                        <div className="h-3 bg-purple-100 rounded w-1/3"></div>
+                                    </div>
+                                </div>
+                                <div className="h-6 bg-purple-200 rounded w-2/3 mb-3"></div>
+                                <div className="space-y-2 mb-4">
+                                    <div className="h-4 bg-purple-100 rounded w-full"></div>
+                                    <div className="h-4 bg-purple-100 rounded w-5/6"></div>
+                                </div>
+                                <div className="h-px bg-purple-100 mb-4"></div>
+                                <div className="flex gap-6">
+                                    <div className="h-4 bg-purple-100 rounded w-16"></div>
+                                    <div className="h-4 bg-purple-100 rounded w-16"></div>
+                                </div>
+                            </div>
+                        ))
+                    ) : filteredPosts.length === 0 ? (
                         <div className="backdrop-blur-md bg-white/70 rounded-3xl shadow-xl border border-purple-200/50 p-12 text-center">
                             <div className="w-20 h-20 rounded-full bg-purple-100 flex items-center justify-center mx-auto mb-4">
                                 <MessageCircle className="w-10 h-10 text-purple-400" />
@@ -486,10 +499,16 @@ const CommunitySupportForum = () => {
                                         ))}
 
                                         {/* Load More Comments Button */}
-                                        {post.comments.length >= COMMENTS_PER_PAGE && (
+                                        {commentsPagination[post.id]?.has_next && (
                                             <div className="ml-8">
                                                 <button
-                                                    onClick={() => fetchComments(post.id, commentsPage[post.id] || 0)}
+                                                    onClick={() =>
+                                                        fetchComments(
+                                                            post.id,
+                                                            (commentsPagination[post.id]?.page || 1) + 1,
+                                                            true
+                                                        )
+                                                    }
                                                     disabled={commentsLoading[post.id]}
                                                     className="px-4 py-2 text-sm font-medium text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                                 >
@@ -499,22 +518,33 @@ const CommunitySupportForum = () => {
                                         )}
 
                                         {/* Add Comment */}
-                                        <div className="flex gap-3 ml-8">
-                                            <input
-                                                type="text"
-                                                placeholder="Share your support..."
-                                                value={newComment[post.id] || ''}
-                                                onChange={(e) => setNewComment({ ...newComment, [post.id]: e.target.value })}
-                                                onKeyDown={(e) => e.key === 'Enter' && handleAddComment(post.id)}
-                                                className="flex-1 px-4 py-3 bg-white/80 backdrop-blur-sm border border-purple-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-transparent transition-all duration-300"
-                                            />
-                                            <button
-                                                onClick={() => handleAddComment(post.id)}
-                                                disabled={!newComment[post.id]?.trim()}
-                                                className="px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                                            >
-                                                <Send className="w-5 h-5" />
-                                            </button>
+                                        <div className="flex flex-col gap-2 ml-8">
+                                            <div className="flex gap-3">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Share your support..."
+                                                    value={newComment[post.id] || ''}
+                                                    onChange={(e) => {
+                                                        setNewComment({ ...newComment, [post.id]: e.target.value });
+                                                        setCommentError(prev => ({ ...prev, [post.id]: null })); // clear error on type
+                                                    }}
+                                                    onKeyDown={(e) => e.key === 'Enter' && handleAddComment(post.id)}
+                                                    className="flex-1 px-4 py-3 bg-white/80 backdrop-blur-sm border border-purple-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-transparent transition-all duration-300"
+                                                />
+                                                <button
+                                                    onClick={() => handleAddComment(post.id)}
+                                                    disabled={!newComment[post.id]?.trim()}
+                                                    className="px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    <Send className="w-5 h-5" />
+                                                </button>
+                                            </div>
+                                            {commentError[post.id] && (
+                                                <p className="text-red-500 text-md px-1">
+                                                    ⚠️ {commentError[post.id]}
+                                                   
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
                                 )}

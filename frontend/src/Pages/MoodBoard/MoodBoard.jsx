@@ -1,6 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { NotebookPen, CalendarDays, Sparkles, Trash2, Plus } from 'lucide-react';
 import UseStore from '@/store/UseStore';
+import axios from 'axios';
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
+
+const API_BASE = 'http://127.0.0.1:8000';
 
 // Modern mood board page with emoji selection, journaling, and recent entries
 const moods = [
@@ -19,11 +28,52 @@ const MoodBoard = () => {
   const [note, setNote] = useState('');
   const [selectedMood, setSelectedMood] = useState(null);
   const [intensity, setIntensity] = useState(5); // 1-10 slider
+  const [loadingEntries, setLoadingEntries] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+  const [boardError, setBoardError] = useState('');
 
-  // Load existing entries from localStorage
+  const mapApiEntryToStoreEntry = (entry) => ({
+    id: entry.id,
+    date: entry.created_at,
+    moodId: entry.mood_label ? entry.mood_label.toLowerCase() : null,
+    moodLabel: entry.mood_label || null,
+    emoji: entry.emoji || null,
+    intensity: entry.intensity || 0,
+    note: entry.note || null,
+  });
+
+  const fetchMoodEntries = async () => {
+    setLoadingEntries(true);
+    setBoardError('');
+    try {
+      const { data } = await supabase.auth.getSession();
+      const token = data?.session?.access_token;
+
+      if (!token) {
+        setWellnessData([]);
+        return;
+      }
+
+      const response = await axios.get(`${API_BASE}/mood-entries`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const mapped = (response?.data?.entries || []).map(mapApiEntryToStoreEntry);
+      setWellnessData(mapped);
+    } catch (error) {
+      console.error('Error fetching mood entries:', error.response?.data || error.message);
+      setBoardError('Could not load mood entries. Please try again.');
+    } finally {
+      setLoadingEntries(false);
+    }
+  };
+
+  // Load existing entries from backend
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('moodEntries') || '[]');
-    if (saved?.length) setWellnessData(saved);
+    fetchMoodEntries();
   }, [setWellnessData]);
 
   // Persist to localStorage when store changes
@@ -34,6 +84,17 @@ const MoodBoard = () => {
   const entriesCount = wellnessData?.length || 0;
   const today = useMemo(() => new Date().toLocaleDateString(), []);
 
+  const todaysEntries = useMemo(() => {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    return (wellnessData || []).filter((e) => new Date(e.date) >= start).length;
+  }, [wellnessData]);
+
+  const avgIntensity = useMemo(() => {
+    if (!wellnessData?.length) return 0;
+    return Math.round(wellnessData.reduce((sum, e) => sum + (e.intensity || 0), 0) / wellnessData.length);
+  }, [wellnessData]);
+
   const canSubmit = selectedMood || note.trim().length > 0;
 
   const handleClear = () => {
@@ -42,26 +103,77 @@ const MoodBoard = () => {
     setIntensity(5);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!canSubmit) return;
+
     const moodMeta = moods.find(m => m.id === selectedMood) || null;
-    const entry = {
-      id: crypto.randomUUID(),
-      date: new Date().toISOString(),
-      moodId: moodMeta?.id || null,
-      moodLabel: moodMeta?.label || null,
-      emoji: moodMeta?.emoji || null,
-      intensity,
-      note: note.trim() || null,
-    };
-    const next = [entry, ...(wellnessData || [])];
-    setWellnessData(next);
-    handleClear();
+
+    try {
+      setSubmitting(true);
+      setBoardError('');
+      const { data } = await supabase.auth.getSession();
+      const token = data?.session?.access_token;
+
+      if (!token) {
+        alert('Please log in to save mood entries.');
+        return;
+      }
+
+      const payload = {
+        mood_id: null,
+        mood_label: moodMeta?.label || null,
+        emoji: moodMeta?.emoji || null,
+        intensity,
+        note: note.trim() || null,
+      };
+
+      const response = await axios.post(`${API_BASE}/mood-entries`, payload, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const savedEntry = mapApiEntryToStoreEntry(response?.data?.entry);
+      setWellnessData([savedEntry, ...(wellnessData || [])]);
+      handleClear();
+    } catch (error) {
+      console.error('Error saving mood entry:', error.response?.data || error.message);
+      setBoardError('Could not save mood entry. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleDelete = (id) => {
-    const next = (wellnessData || []).filter(e => e.id !== id);
-    setWellnessData(next);
+  const handleDelete = async (id) => {
+    const confirmed = window.confirm('Delete this mood entry?');
+    if (!confirmed) return;
+
+    try {
+      setDeletingId(id);
+      setBoardError('');
+      const { data } = await supabase.auth.getSession();
+      const token = data?.session?.access_token;
+
+      if (!token) {
+        alert('Please log in to delete mood entries.');
+        return;
+      }
+
+      await axios.delete(`${API_BASE}/mood-entries/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const next = (wellnessData || []).filter(e => e.id !== id);
+      setWellnessData(next);
+    } catch (error) {
+      console.error('Error deleting mood entry:', error.response?.data || error.message);
+      setBoardError('Could not delete mood entry. Please try again.');
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   return (
@@ -90,6 +202,29 @@ const MoodBoard = () => {
             </div>
           </div>
         </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="bg-white rounded-2xl shadow-lg border border-purple-100/60 p-4">
+            <p className="text-sm text-gray-500">Today&apos;s logs</p>
+            <p className="text-2xl font-bold text-purple-700 mt-1">{todaysEntries}</p>
+          </div>
+          <div className="bg-white rounded-2xl shadow-lg border border-purple-100/60 p-4">
+            <p className="text-sm text-gray-500">Average intensity</p>
+            <p className="text-2xl font-bold text-purple-700 mt-1">{avgIntensity}/10</p>
+          </div>
+        </div>
+
+        {boardError && (
+          <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm flex items-center justify-between">
+            <span>{boardError}</span>
+            <button
+              onClick={fetchMoodEntries}
+              className="text-red-700 font-semibold hover:underline"
+            >
+              Retry
+            </button>
+          </div>
+        )}
 
         {/* Composer */}
         <div className="bg-white rounded-2xl shadow-lg border border-purple-100/60 p-6 sm:p-8">
@@ -150,6 +285,7 @@ const MoodBoard = () => {
           <div className="mt-6 flex items-center justify-between">
             <button
               onClick={handleClear}
+              disabled={submitting}
               className="flex items-center gap-2 text-gray-600 hover:text-gray-800"
             >
               <Trash2 className="w-4 h-4" /> Clear
@@ -157,11 +293,11 @@ const MoodBoard = () => {
 
             <button
               onClick={handleSubmit}
-              disabled={!canSubmit}
+              disabled={!canSubmit || submitting}
               className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold shadow-md transition
-                ${canSubmit ? 'bg-purple-600 text-white hover:bg-purple-700' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
+                ${canSubmit && !submitting ? 'bg-purple-600 text-white hover:bg-purple-700' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
             >
-              <Plus className="w-5 h-5" /> Log Mood
+              <Plus className="w-5 h-5" /> {submitting ? 'Saving...' : 'Log Mood'}
             </button>
           </div>
         </div>
@@ -173,7 +309,11 @@ const MoodBoard = () => {
             <h3 className="text-lg font-semibold text-gray-800">Recent Mood Entries</h3>
           </div>
 
-          {entriesCount === 0 ? (
+          {loadingEntries ? (
+            <div className="p-10 sm:p-16 text-center">
+              <p className="text-gray-500 text-sm">Loading mood entries...</p>
+            </div>
+          ) : entriesCount === 0 ? (
             <div className="p-10 sm:p-16 text-center">
               <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-400 to-pink-400 text-white flex items-center justify-center shadow">
                 <NotebookPen className="w-8 h-8" />
@@ -205,10 +345,11 @@ const MoodBoard = () => {
                     </div>
                     <button
                       onClick={() => handleDelete(e.id)}
-                      className="text-gray-500 hover:text-red-600 transition"
+                      disabled={deletingId === e.id}
+                      className="text-gray-500 hover:text-red-600 transition disabled:opacity-50"
                       title="Delete entry"
                     >
-                      <Trash2 className="w-5 h-5" />
+                      {deletingId === e.id ? '...' : <Trash2 className="w-5 h-5" />}
                     </button>
                   </div>
                 </li>

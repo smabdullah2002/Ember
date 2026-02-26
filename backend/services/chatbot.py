@@ -118,7 +118,6 @@ async def chat_endpoint(user_id: str, user_msg: str):
             model="gemini-2.5-flash",
             contents=content,
         )
-        # print("boooooooooottttttttttt", response.text)
         
         is_checklist = False
         checklist_items = []
@@ -141,6 +140,9 @@ async def chat_endpoint(user_id: str, user_msg: str):
         
         if is_checklist:
             save_checklist(user_id, checklist_items)
+            save_message(user_id, "model", "Here's your personalized wellness checklist! I've saved it for you.")
+            return({"response": "Here's your personalized wellness checklist! I've saved it for you."})
+            
         else:
             save_message(user_id, "model", response.text)
 
@@ -178,6 +180,45 @@ async def get_chat_history(user_id: str):
     except Exception as e:
         print(f"Error getting chat history: {str(e)}")
         return []
+
+
+async def get_chat_history_for_ui(user_id: str, limit: int = 100):
+    try:
+        res = (
+            supabase.table("messages")
+            .select("id, role, content, created_at")
+            .eq("user_id", user_id)
+            .order("created_at")
+            .limit(limit)
+            .execute()
+        )
+
+        messages = []
+        for message in res.data or []:
+            role = message.get("role")
+            from_value = "ai" if role in ["bot", "model"] else "user"
+            messages.append(
+                {
+                    "id": message.get("id"),
+                    "from": from_value,
+                    "text": message.get("content", ""),
+                    "created_at": message.get("created_at"),
+                }
+            )
+
+        return messages
+    except Exception as e:
+        print(f"Error getting UI chat history: {str(e)}")
+        return []
+
+
+async def clear_chat_history(user_id: str):
+    try:
+        supabase.table("messages").delete().eq("user_id", user_id).execute()
+        return {"message": "Chat history cleared successfully."}
+    except Exception as e:
+        print(f"Error clearing chat history: {str(e)}")
+        raise
 
 
 def save_message(user_id: str, role: str, content: str):

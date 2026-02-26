@@ -1,14 +1,10 @@
 import React from 'react';
-import WellnessList from '../../components/WellnessList/WellnessList';
-import Sidebar from '../../components/Header/Sidebar/Sidebar';
+import MoodDashboard from '../MoodDashboard/MoodDashboard';
 
 const Dashboard = () => {
     return (
         <div>
-           <WellnessList/>
-           
-         
-            
+           <MoodDashboard></MoodDashboard>
         </div>
     );
 };

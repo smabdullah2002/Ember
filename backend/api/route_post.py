@@ -60,6 +60,12 @@ async def get_community_posts():
             .eq("post_id", post["id"])
             .execute()
         )
+        comments = (
+            supabase.table("comments")
+            .select("*", count="exact")
+            .eq("post_id", post["id"])
+            .execute()
+        )
         posts.append(
             {
                 "id": post["id"],
@@ -68,6 +74,7 @@ async def get_community_posts():
                 "catagory": post["catagory"],
                 "author": author,
                 "likes": likes.count,
+                "total_comments": comments.count,
                 "author_id": post.get("user_id"),
                 "created_at": post["created_at"],
             }
