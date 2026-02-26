@@ -8,6 +8,7 @@ from services.community_post import (
 from schemas.community import CommunityPostSchema
 from fastapi.security import OAuth2PasswordBearer
 from config import supabase
+from pydantic import BaseModel
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
@@ -33,7 +34,12 @@ async def post_community(
 
 @router.get("/community/posts")
 async def get_community_posts():
-    response = supabase.table("community_post").select("*").execute()
+    response = (
+        supabase.table("community_post")
+        .select("*")
+        .order("created_at", desc=True)
+        .execute()
+    )
     posts = []
 
     for post in response.data:
@@ -48,6 +54,12 @@ async def get_community_posts():
             )
             if profile.data and profile.data.get("first_name"):
                 author = profile.data["first_name"]
+        likes= (
+            supabase.table("post_likes")
+            .select("*", count="exact")
+            .eq("post_id", post["id"])
+            .execute()
+        )
         posts.append(
             {
                 "id": post["id"],
@@ -55,6 +67,7 @@ async def get_community_posts():
                 "content": post["content"],
                 "catagory": post["catagory"],
                 "author": author,
+                "likes": likes.count,
                 "author_id": post.get("user_id"),
                 "created_at": post["created_at"],
             }
@@ -79,7 +92,9 @@ async def put_community_post(
 
 
 @router.delete("/community/post/{post_id}")
-async def delete_community_post_endpoint(post_id: str, token: str = Depends(oauth2_scheme)):
+async def delete_community_post_endpoint(
+    post_id: str, token: str = Depends(oauth2_scheme)
+):
     user = supabase.auth.get_user(token)
     if user.user is None:
         raise HTTPException(
@@ -90,3 +105,44 @@ async def delete_community_post_endpoint(post_id: str, token: str = Depends(oaut
         "message": "Community post deleted successfully",
         "post_id": deleted_post[0]["id"],
     }
+
+
+class LikeRequest(BaseModel):
+    likes: int
+
+
+@router.patch("/community/post/{post_id}/like")
+async def like_community_post(post_id: str, token: str = Depends(oauth2_scheme)):
+    try:
+        user = supabase.auth.get_user(token)
+        user_id = user.user.id
+        print(f"User ID: {user_id}, Post ID: {post_id}")
+
+        existing = (
+            supabase.table("post_likes")
+            .select("id")
+            .eq("post_id", post_id)
+            .eq("user_id", user_id)
+            .execute()
+        )
+        if existing.data:
+            supabase.table("post_likes").delete().eq("post_id", post_id).eq(
+                "user_id", user_id
+            ).execute()
+            liked = False
+        else:
+            supabase.table("post_likes").insert(
+                {"post_id": post_id, "user_id": user_id}
+            ).execute()
+            liked = True
+
+        count = (
+            supabase.table("post_likes")
+            .select("*", count="exact")
+            .eq("post_id", post_id)
+            .execute()
+        )
+
+        return {"liked": liked, "likes": count.count}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))

@@ -92,28 +92,45 @@ const CommunitySupportForum = () => {
     };
 
 
+
     const fetchPosts = async () => {
         try {
+            const { data: sessionData } = await supabase.auth.getSession();
+            const userId = sessionData?.session?.user?.id;
+
             const response = await axios.get("http://127.0.0.1:8000/community/posts");
 
-            // Map backend posts to UI format
+            // Fetch this user's likes
+            const { data: userLikes } = await supabase
+                .from("post_likes")
+                .select("post_id")
+                .eq("user_id", userId);
+
+            const likedPostIds = new Set(userLikes?.map(l => l.post_id) || []);
+            
+            for (const post of response.data.posts) {
+                fetchComments(post.id);
+            }
+
+            
+
             const formattedPosts = response.data.posts.map(post => ({
                 id: post.id,
                 author: post.author || "Anonymous",
                 avatar: post.author ? "👤" : "🕶️",
-                time: formatTime(post.created_at), // You'll need to format the timestamp
+                time: formatTime(post.created_at),
                 title: post.title,
                 content: post.content,
                 catagory: post.catagory,
-                likes: 0, // TODO: Fetch from backend if you track likes
-                comments: [], // TODO: Fetch comments if stored
-                isLiked: false
+                likes: post.likes || 0,
+                comments: [],
+                isLiked: likedPostIds.has(post.id),  // ✅ correct on load
+                total_comments: post.total_comments || 0,
             }));
 
             setPosts(formattedPosts);
         } catch (error) {
-            console.error("Error fetching posts:", error);
-            console.error("Error details:", error.response?.data);
+            console.error("Error fetching posts:", error.response?.data);
         }
     };
     const formatTime = (timestamp) => {
@@ -248,7 +265,7 @@ const CommunitySupportForum = () => {
                             ...post,
                             comments: currentPage === 0 ? commentsWithAuthors : [...post.comments, ...commentsWithAuthors],
                             total_comments: totalComments
-                           
+
                         };
                     }
                     return post;
@@ -274,18 +291,33 @@ const CommunitySupportForum = () => {
     }, [selectedPost]);
 
 
-    
-    const handleLike = (postId) => {
-        setPosts(posts.map(post => {
-            if (post.id === postId) {
-                return {
-                    ...post,
-                    likes: post.isLiked ? post.likes - 1 : post.likes + 1,
-                    isLiked: !post.isLiked
-                };
-            }
-            return post;
-        }));
+
+    const handleLike = async (postId) => {
+        const { data } = await supabase.auth.getSession();
+        const token = data.session.access_token;
+
+        try {
+            const response = await axios.patch(
+                `http://127.0.0.1:8000/community/post/${postId}/like`,
+                {},
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+
+            const { likes, liked } = response.data;
+
+            setPosts(prev => prev.map(post =>
+                post.id === postId
+                    ? { ...post, likes, isLiked: liked }  // use isLiked not liked
+                    : post
+            ));
+        } catch (e) {
+            console.error("Failed to update likes:", e.response?.data);
+        }
     };
 
     const getRandomAvatar = () => {
@@ -382,7 +414,7 @@ const CommunitySupportForum = () => {
                                 <div className="flex items-start justify-between mb-4">
                                     <div className="flex items-center gap-3">
                                         <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-2xl">
-                                            {post.avatar}
+                                            {post.avatars}
                                         </div>
                                         <div>
                                             <h4 className="font-semibold text-gray-800">{post.author}</h4>

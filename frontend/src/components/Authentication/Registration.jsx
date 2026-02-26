@@ -39,7 +39,7 @@ const Registration = () => {
 
         try {
             await axios.post(
-                "http://127.0.0.1:8000/auth/signup",
+                "http://127.0.0.1:8000/signup",
                 payload,
                 { headers: { "Content-Type": "application/json" } }
             );
