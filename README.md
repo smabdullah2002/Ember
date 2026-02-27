@@ -243,21 +243,49 @@ curl -X POST http://127.0.0.1:8000/mood-entries \
 
 ![Home](frontend/public/screenshots/home.png)
 
+Landing page introducing Ember and guiding users into authentication.
+
 ### Login
 
 ![Login](frontend/public/screenshots/login.png)
+
+Secure sign-in screen for returning users.
 
 ### Chat
 
 ![Chat](frontend/public/screenshots/chat.png)
 
+AI support conversation with persistent history and wellness guidance.
+
+### Moodkit
+
+![Moodkit](frontend/public/screenshots/moodkit.png)
+
+Self-help toolkit hub for breathing, meditation, journaling, and soothing content.
+
 ### MoodBoard
 
 ![MoodBoard](frontend/public/screenshots/moodboard.png)
 
+Mood logging interface with intensity and notes.
+
 ### Mood Dashboard
 
 ![Mood Dashboard](frontend/public/screenshots/mood-dashboard.png)
+
+Analytics view with trend charts, mood distribution, and heatmap consistency.
+
+### Community
+
+![Community](frontend/public/screenshots/community.png)
+
+Community forum where users can post, like, and comment for peer support.
+
+### Profile
+
+![Profile](frontend/public/screenshots/profile.png)
+
+User profile view for personal account and activity context.
 
 ## Support
 
