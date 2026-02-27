@@ -1,11 +1,12 @@
-fastapi==0.111.1
+fastapi
 uvicorn
-google-genai==0.3.2
-pydantic==2.6.0
-python-dotenv==1.1.1
+google-genai
+pydantic
+python-dotenv
 pydantic[email] 
 passlib[bcrypt] 
-#jwt equivalent
 python-jose
 supabase
 python-multipart
+transformers
+torch
