@@ -9,7 +9,7 @@ toxic_classifier = pipeline(
     "text-classification", model="martin-ha/toxic-comment-model", device=-1
 )
 
-toxic_threshold = 0.8
+toxic_threshold = 0.5 
 
 
 def is_toxic(text: str):
