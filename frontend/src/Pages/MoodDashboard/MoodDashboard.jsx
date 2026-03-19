@@ -72,6 +72,20 @@ const MoodDashboard = () => {
   const [dashboardError, setDashboardError] = useState('');
   const [rangeDays, setRangeDays] = useState(30);
 
+  const getSessionWithRetry = async () => {
+    const { data } = await supabase.auth.getSession();
+    const currentSession = data?.session;
+
+    if (currentSession?.access_token && currentSession?.user?.id) {
+      return currentSession;
+    }
+
+    const { data: refreshed } = await supabase.auth.refreshSession();
+    return refreshed?.session || null;
+  };
+
+  const getMoodStorageKey = (userId) => `moodEntries:${userId}`;
+
   const mapApiEntryToStoreEntry = (entry) => ({
     id: entry.id,
     date: entry.created_at,
@@ -88,12 +102,12 @@ const MoodDashboard = () => {
       setLoadingDashboard(true);
       setDashboardError('');
       try {
-        const { data } = await supabase.auth.getSession();
-        const token = data?.session?.access_token;
+        const session = await getSessionWithRetry();
+        const token = session?.access_token;
+        const userId = session?.user?.id;
 
-        if (!token) {
-          const saved = JSON.parse(localStorage.getItem('moodEntries') || '[]');
-          if (saved?.length) setWellnessData(saved);
+        if (!token || !userId) {
+          setWellnessData([]);
           return;
         }
 
@@ -105,24 +119,33 @@ const MoodDashboard = () => {
 
         const mapped = (response?.data?.entries || []).map(mapApiEntryToStoreEntry);
         setWellnessData(mapped);
+        localStorage.setItem(getMoodStorageKey(userId), JSON.stringify(mapped));
       } catch {
-        const saved = JSON.parse(localStorage.getItem('moodEntries') || '[]');
-        if (saved?.length) {
-          setWellnessData(saved);
-        } else {
-          setDashboardError('Could not load mood analytics right now.');
-        }
+        const session = await getSessionWithRetry();
+        const userId = session?.user?.id;
+        const saved = userId
+          ? JSON.parse(localStorage.getItem(getMoodStorageKey(userId)) || '[]')
+          : [];
+
+        if (saved?.length) setWellnessData(saved);
+        else setDashboardError('Could not load mood analytics right now.');
       } finally {
         setLoadingDashboard(false);
       }
     };
 
-    if (!wellnessData || wellnessData.length === 0) {
+    fetchMoodEntries();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
       fetchMoodEntries();
-    } else {
-      setLoadingDashboard(false);
-    }
-  }, [wellnessData, setWellnessData]);
+    });
+
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, [setWellnessData]);
 
   const filteredEntries = useMemo(() => {
     const now = new Date();

@@ -33,6 +33,20 @@ const MoodBoard = () => {
   const [deletingId, setDeletingId] = useState(null);
   const [boardError, setBoardError] = useState('');
 
+  const getSessionWithRetry = async () => {
+    const { data } = await supabase.auth.getSession();
+    const currentSession = data?.session;
+
+    if (currentSession?.access_token && currentSession?.user?.id) {
+      return currentSession;
+    }
+
+    const { data: refreshed } = await supabase.auth.refreshSession();
+    return refreshed?.session || null;
+  };
+
+  const getMoodStorageKey = (userId) => `moodEntries:${userId}`;
+
   const mapApiEntryToStoreEntry = (entry) => ({
     id: entry.id,
     date: entry.created_at,
@@ -47,10 +61,11 @@ const MoodBoard = () => {
     setLoadingEntries(true);
     setBoardError('');
     try {
-      const { data } = await supabase.auth.getSession();
-      const token = data?.session?.access_token;
+      const session = await getSessionWithRetry();
+      const token = session?.access_token;
+      const userId = session?.user?.id;
 
-      if (!token) {
+      if (!token || !userId) {
         setWellnessData([]);
         return;
       }
@@ -63,6 +78,7 @@ const MoodBoard = () => {
 
       const mapped = (response?.data?.entries || []).map(mapApiEntryToStoreEntry);
       setWellnessData(mapped);
+      localStorage.setItem(getMoodStorageKey(userId), JSON.stringify(mapped));
     } catch (error) {
       console.error('Error fetching mood entries:', error.response?.data || error.message);
       setBoardError('Could not load mood entries. Please try again.');
@@ -74,12 +90,17 @@ const MoodBoard = () => {
   // Load existing entries from backend
   useEffect(() => {
     fetchMoodEntries();
-  }, [setWellnessData]);
 
-  // Persist to localStorage when store changes
-  useEffect(() => {
-    localStorage.setItem('moodEntries', JSON.stringify(wellnessData || []));
-  }, [wellnessData]);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
+      fetchMoodEntries();
+    });
+
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, [setWellnessData]);
 
   const entriesCount = wellnessData?.length || 0;
   const today = useMemo(() => new Date().toLocaleDateString(), []);
@@ -111,10 +132,11 @@ const MoodBoard = () => {
     try {
       setSubmitting(true);
       setBoardError('');
-      const { data } = await supabase.auth.getSession();
-      const token = data?.session?.access_token;
+      const session = await getSessionWithRetry();
+      const token = session?.access_token;
+      const userId = session?.user?.id;
 
-      if (!token) {
+      if (!token || !userId) {
         alert('Please log in to save mood entries.');
         return;
       }
@@ -135,7 +157,9 @@ const MoodBoard = () => {
       });
 
       const savedEntry = mapApiEntryToStoreEntry(response?.data?.entry);
-      setWellnessData([savedEntry, ...(wellnessData || [])]);
+      const nextEntries = [savedEntry, ...(wellnessData || [])];
+      setWellnessData(nextEntries);
+      localStorage.setItem(getMoodStorageKey(userId), JSON.stringify(nextEntries));
       handleClear();
     } catch (error) {
       console.error('Error saving mood entry:', error.response?.data || error.message);
@@ -152,10 +176,11 @@ const MoodBoard = () => {
     try {
       setDeletingId(id);
       setBoardError('');
-      const { data } = await supabase.auth.getSession();
-      const token = data?.session?.access_token;
+      const session = await getSessionWithRetry();
+      const token = session?.access_token;
+      const userId = session?.user?.id;
 
-      if (!token) {
+      if (!token || !userId) {
         alert('Please log in to delete mood entries.');
         return;
       }
@@ -168,6 +193,7 @@ const MoodBoard = () => {
 
       const next = (wellnessData || []).filter(e => e.id !== id);
       setWellnessData(next);
+      localStorage.setItem(getMoodStorageKey(userId), JSON.stringify(next));
     } catch (error) {
       console.error('Error deleting mood entry:', error.response?.data || error.message);
       setBoardError('Could not delete mood entry. Please try again.');
