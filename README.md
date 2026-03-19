@@ -7,6 +7,8 @@
 
 Ember is a mental wellness web app that combines mood tracking, journaling, guided self-help tools, a supportive community feed, and an AI chat companion.
 
+Live Demo: https://ember-mentalhealth-companion.netlify.app/
+
 ## Table of Contents
 
 - [What this project does](#what-this-project-does)
