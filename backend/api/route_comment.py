@@ -24,6 +24,13 @@ async def post_comment(comment: CommentSchema, token: str = Depends(oauth2_schem
     }
 
 
+@router.get("/community/comment")
+async def comment_endpoint_help():
+    return {
+        "message": "Use POST /community/comment to create a comment and GET /community/comments/{post_id} to list comments.",
+    }
+
+
 @router.get("/community/comments/{post_id}")
 async def get_comments(
     post_id: str,

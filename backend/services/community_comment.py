@@ -1,31 +1,54 @@
-from fastapi import FastAPI, HTTPException
-from schemas.comment import CommentSchema
-from config import supabase
-from transformers import pipeline
+import os
 import math
 
+import requests
+from fastapi import HTTPException
+from schemas.comment import CommentSchema
+from config import supabase
 
-toxic_classifier = pipeline(
-    "text-classification", model="martin-ha/toxic-comment-model", device=-1
-)
 
-toxic_threshold = 0.5 
+HF_API_KEY = os.getenv("HF_API_KEY")
+HF_TOXIC_MODEL = os.getenv("HF_TOXIC_MODEL", "martin-ha/toxic-comment-model")
+HF_TOXIC_ENDPOINT = f"https://router.huggingface.co/hf-inference/models/{HF_TOXIC_MODEL}"
+TOXIC_THRESHOLD = float(os.getenv("TOXIC_THRESHOLD", "0.5"))
+MODERATION_FAIL_CLOSED = os.getenv("MODERATION_FAIL_CLOSED", "true").lower() == "true"
 
 
 def is_toxic(text: str):
-    result = toxic_classifier(text)[0]
-    return result["label"] == "toxic" and result["score"] >= toxic_threshold
+    if not HF_API_KEY:
+        print(
+            f"[TOXICITY] score=N/A label=missing_hf_api_key threshold=N/A toxic={MODERATION_FAIL_CLOSED}",
+            flush=True,
+        )
+        return MODERATION_FAIL_CLOSED
+
+    headers = {
+        "Authorization": f"Bearer {HF_API_KEY}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "inputs": text,
+        "parameters": {"top_k": 1},
+    }
+
+    
+    response = requests.post(HF_TOXIC_ENDPOINT, headers=headers, json=payload, timeout=8)
+    res=response.json()
+    if(res[0][0]['label']=='toxic' and res[0][0]['score']>=TOXIC_THRESHOLD):
+        return True
+
+    
+    return False
+       
 
 
 async def add_comment(data: CommentSchema, user_id: str):
-    print(f"Rejected toxic comment: {data.content[:50]}...")
     if is_toxic(data.content):
         raise HTTPException(
             status_code=400,
             detail="Comment was flagged as toxic and could not be posted.",
         )
        
-
     response = (
         supabase.table("comments")
         .insert({"post_id": data.post_id, "user_id": user_id, "comment": data.content})
