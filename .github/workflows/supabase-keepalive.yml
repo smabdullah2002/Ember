@@ -1,0 +1,33 @@
+name: Supabase Keep-Alive Trigger
+
+on:
+  # Runs automatically at 00:00 UTC every 5 days (max gap = 5 days, under the 7-day pause limit)
+  schedule:
+    - cron: '0 0 */5 * *'
+  # Allows manual triggering from the GitHub Actions tab anytime
+  workflow_dispatch:
+
+jobs:
+  ping-supabase:
+    runs-on: ubuntu-latest
+    name: Ping Supabase Database
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests python-dotenv
+
+      - name: Execute Keep-Alive Ping
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://lauldcmixszgjdktksvq.supabase.co' }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY || 'sb_publishable_xUGrMzUaFcd6Lf6H5jaEXQ_ol6Ph90-' }}
+        run: python scripts/ping_supabase.py

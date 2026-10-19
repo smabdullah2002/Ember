@@ -289,6 +289,14 @@ Community forum where users can post, like, and comment for peer support.
 
 User profile view for personal account and activity context.
 
+## Supabase Keep-Alive Automation
+
+Supabase free-tier projects automatically pause after 7 days without incoming API traffic. To prevent this, an automated keep-alive trigger is set up:
+
+- **GitHub Actions Workflow**: [`.github/workflows/supabase-keepalive.yml`](.github/workflows/supabase-keepalive.yml) runs every 5 days (`cron: '0 0 */5 * *'`) and executes the keep-alive script (also runnable manually via `workflow_dispatch`).
+- **Ping Script**: [`scripts/ping_supabase.py`](scripts/ping_supabase.py) issues a single Supabase REST query (`community_post`) to reset the inactivity timer. It reads `SUPABASE_URL` / `SUPABASE_KEY` from `backend/.env`, or from the environment when run in CI.
+- **Backend Health Check**: [`backend/server.py`](backend/server.py) exposes `/health` and `/ping` endpoints that also verify database responsiveness.
+
 ## Support
 
 - Open an issue: https://github.com/smabdullah2002/Ember/issues
