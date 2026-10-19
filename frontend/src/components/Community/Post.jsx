@@ -8,6 +8,8 @@ const supabase = createClient(
     import.meta.env.VITE_SUPABASE_ANON_KEY
 );
 
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
+
 const CommunitySupportForum = () => {
     const [posts, setPosts] = useState([]);
     const [postsLoading, setPostsLoading] = useState(true);
@@ -75,7 +77,7 @@ const CommunitySupportForum = () => {
             const { data } = await supabase.auth.getSession();
             const token = data.session.access_token;
             await axios.post(
-                "http://127.0.0.1:8000/community/post",
+                `${API_BASE}/community/post`,
                 post,
                 {
                     headers: {
@@ -102,7 +104,7 @@ const CommunitySupportForum = () => {
             const { data: sessionData } = await supabase.auth.getSession();
             const userId = sessionData?.session?.user?.id;
 
-            const response = await axios.get("http://127.0.0.1:8000/community/posts");
+            const response = await axios.get(`${API_BASE}/community/posts`);
 
             // Fetch this user's likes
             const { data: userLikes } = await supabase
@@ -173,7 +175,7 @@ const CommunitySupportForum = () => {
             const { data } = await supabase.auth.getSession();
             const token = data.session.access_token;
             const response = await axios.post(
-                "http://127.0.0.1:8000/community/comment",
+                `${API_BASE}/community/comment`,
                 comment,
                 {
                     headers: {
@@ -215,7 +217,7 @@ const CommunitySupportForum = () => {
 
         try {
             const response = await axios.get(
-                `http://127.0.0.1:8000/community/comments/${postId}?page=${page}&page_size=${COMMENTS_PER_PAGE}`
+                `${API_BASE}/community/comments/${postId}?page=${page}&page_size=${COMMENTS_PER_PAGE}`
             );
 
             console.log(response.data);
@@ -286,7 +288,7 @@ const CommunitySupportForum = () => {
 
         try {
             const response = await axios.patch(
-                `http://127.0.0.1:8000/community/post/${postId}/like`,
+                `${API_BASE}/community/post/${postId}/like`,
                 {},
                 {
                     headers: {

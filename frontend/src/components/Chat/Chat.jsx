@@ -11,6 +11,8 @@ const supabase = createClient(
     import.meta.env.VITE_SUPABASE_ANON_KEY
 );
 
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
+
 const Chat = () => {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
@@ -58,7 +60,7 @@ const Chat = () => {
                 return;
             }
 
-            const response = await axios.get("http://127.0.0.1:8000/chat/history", {
+            const response = await axios.get(`${API_BASE}/chat/history`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
@@ -86,7 +88,7 @@ const Chat = () => {
             const token = data?.session?.access_token;
 
             if (token) {
-                await axios.delete("http://127.0.0.1:8000/chat/history", {
+                await axios.delete(`${API_BASE}/chat/history`, {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
@@ -117,7 +119,7 @@ const Chat = () => {
         try {
             const { data } = await supabase.auth.getSession();
             const token = data.session.access_token;
-            const res = await axios.post("http://127.0.0.1:8000/chat", { message: input },
+            const res = await axios.post(`${API_BASE}/chat`, { message: input },
                 {
                     headers: {
                         "Content-Type": "application/json",

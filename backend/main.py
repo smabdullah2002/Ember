@@ -15,4 +15,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.get("/ping")
+@app.get("/health")
+def ping_db():
+    try:
+        from config import supabase
+        res = supabase.table("community_post").select("id").limit(1).execute()
+        return {"status": "ok", "message": "Database pinged successfully", "data": res.data}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
 app.include_router(api_router)
