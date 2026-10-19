@@ -1,11 +1,7 @@
 import os
 import sys
-from pathlib import Path
 
 import requests
-from dotenv import load_dotenv
-
-load_dotenv(Path(__file__).resolve().parent.parent / "backend" / ".env")
 
 SUPABASE_URL = (os.getenv("SUPABASE_URL") or "").rstrip("/")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY") or ""
@@ -13,7 +9,12 @@ SUPABASE_KEY = os.getenv("SUPABASE_KEY") or ""
 
 def main() -> int:
     if not SUPABASE_URL or not SUPABASE_KEY:
-        print("Error: SUPABASE_URL / SUPABASE_KEY not set (backend/.env missing?)")
+        print("Error: SUPABASE_URL / SUPABASE_KEY environment variables are not set.")
+        print("Set them as GitHub Actions secrets (Settings -> Secrets and variables -> Actions).")
+        return 1
+
+    if not SUPABASE_URL.startswith("https://"):
+        print("Error: SUPABASE_URL must start with https://")
         return 1
 
     url = f"{SUPABASE_URL}/rest/v1/community_post?select=id&limit=1"
